@@ -4,14 +4,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const accountCards = document.querySelectorAll("[data-account-card]");
   const ledgerBody = document.querySelector("[data-ledger-body]");
   const ledgerEmpty = document.querySelector("[data-ledger-empty]");
-  const depositForm = document.getElementById("form-hand-to-account");
-  const withdrawForm = document.getElementById("form-account-to-hand");
-  const depositDestination = document.getElementById("hand-transfer-destination");
-  const withdrawSource = document.getElementById("account-withdraw-source");
-  const depositSummary = document.querySelector("[data-deposit-summary]");
-  const withdrawSummary = document.querySelector("[data-withdraw-summary]");
+  const transferForm = document.getElementById("form-account-transfer");
+  const sourceSelect = document.querySelector("[data-transfer-source]");
+  const destinationSelect = document.querySelector("[data-transfer-destination]");
+  const amountInput = document.getElementById("account-transfer-amount");
+  const summaryElement = document.querySelector("[data-transfer-summary]");
+  const guidelinesContainer = document.querySelector("[data-transfer-guidelines]");
+  const guidelineSource = guidelinesContainer?.querySelector('[data-guideline="source"]');
+  const guidelineDestination = guidelinesContainer?.querySelector('[data-guideline="destination"]');
 
-  const createEmptyState = () => ({ balances: {}, transactions: [], account_labels: {} });
+  const createEmptyState = () => ({ balances: {}, transactions: [], account_labels: {}, requirements: {} });
   let state = createEmptyState();
 
   if (dataElement) {
@@ -38,38 +40,54 @@ document.addEventListener("DOMContentLoaded", () => {
     return state.account_labels?.[accountId] || accountId;
   };
 
-  const presets = {
-    allocation: {
-      name: "Cash Allocation",
-      describe: (destination) => {
-        if (!destination) {
-          return "Wallet deposit into the selected account.";
-        }
-        return `Wallet deposit into ${getAccountLabel(destination)}`;
-      },
-      summaryElement: depositSummary,
-    },
-    withdrawal: {
-      name: "Cash Withdrawal",
-      describe: (source) => {
-        if (!source) {
-      return "Funds moved from the selected account to cash.";
-    }
-    return `Funds moved from ${getAccountLabel(source)} to cash.`;
-      },
-      summaryElement: withdrawSummary,
-    },
+  const getRequirements = (accountId) => {
+    if (!accountId) return null;
+    return state.requirements?.[accountId] || null;
   };
 
-  const updatePresetSummaries = () => {
-    if (presets.allocation.summaryElement) {
-      const destination = depositDestination?.value;
-      presets.allocation.summaryElement.textContent = `${presets.allocation.name} — ${presets.allocation.describe(destination)}`;
+  const toOrdinal = (value) => {
+    const number = Number.parseInt(value, 10);
+    if (!Number.isFinite(number) || number <= 0) {
+      return String(value);
     }
-    if (presets.withdrawal.summaryElement) {
-      const source = withdrawSource?.value;
-      presets.withdrawal.summaryElement.textContent = `${presets.withdrawal.name} — ${presets.withdrawal.describe(source)}`;
+    const mod100 = number % 100;
+    if (mod100 >= 11 && mod100 <= 13) {
+      return `${number}th`;
     }
+    const mod10 = number % 10;
+    if (mod10 === 1) return `${number}st`;
+    if (mod10 === 2) return `${number}nd`;
+    if (mod10 === 3) return `${number}rd`;
+    return `${number}th`;
+  };
+
+  const buildGuidelineMessage = (accountId, role) => {
+    if (!accountId) {
+      return "";
+    }
+
+    if (accountId === "hand") {
+      if (role === "source") {
+        return "Cash withdrawals are kept off the ledger; only the receiving account records the debit.";
+      }
+      return "Cash keeps day-to-day liquidity ready. Track purchases manually to stay aligned.";
+    }
+
+    const requirements = getRequirements(accountId);
+    if (!requirements) {
+      return role === "source"
+        ? `Transfers from ${getAccountLabel(accountId)} are logged immediately.`
+        : `Deposits into ${getAccountLabel(accountId)} appear in its transaction history.`;
+    }
+
+    const minimum = formatCurrency(requirements.minimum_balance);
+    const fee = formatCurrency(requirements.fee);
+    const anchor = toOrdinal(requirements.anchor_day);
+
+    if (role === "source") {
+      return `Keep ${minimum} in ${getAccountLabel(accountId)} or a ${fee} fee posts on the ${anchor} of each cycle.`;
+    }
+    return `Arriving funds help ${getAccountLabel(accountId)} stay above ${minimum} and dodge the ${fee} fee on the ${anchor}.`;
   };
 
   const updateCards = () => {
@@ -148,6 +166,105 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.round(parsed * 100) / 100;
   };
 
+  const syncDisabledOptions = () => {
+    if (!sourceSelect || !destinationSelect) {
+      return;
+    }
+    const sourceValue = sourceSelect.value;
+    const destinationValue = destinationSelect.value;
+
+    Array.from(sourceSelect.options).forEach((option) => {
+      if (!option.value) return;
+      option.disabled = option.value === destinationValue;
+    });
+
+    Array.from(destinationSelect.options).forEach((option) => {
+      if (!option.value) return;
+      option.disabled = option.value === sourceValue;
+    });
+  };
+
+  const updateGuidelines = () => {
+    if (!guidelinesContainer) {
+      return;
+    }
+
+    const sourceValue = sourceSelect?.value;
+    const destinationValue = destinationSelect?.value;
+
+    if (guidelineSource) {
+      if (sourceValue) {
+        guidelineSource.textContent = buildGuidelineMessage(sourceValue, "source");
+        guidelineSource.hidden = false;
+      } else {
+        guidelineSource.textContent = "";
+        guidelineSource.hidden = true;
+      }
+    }
+
+    if (guidelineDestination) {
+      if (destinationValue) {
+        guidelineDestination.textContent = buildGuidelineMessage(destinationValue, "destination");
+        guidelineDestination.hidden = false;
+      } else {
+        guidelineDestination.textContent = "";
+        guidelineDestination.hidden = true;
+      }
+    }
+
+    const hasContent = Boolean(sourceValue || destinationValue);
+    guidelinesContainer.dataset.state = hasContent ? "active" : "idle";
+  };
+
+  const updateSummary = () => {
+    if (!summaryElement) {
+      return;
+    }
+
+    const sourceValue = sourceSelect?.value;
+    const destinationValue = destinationSelect?.value;
+    const amountValue = amountInput?.value;
+    const amount = sanitizeAmount(amountValue);
+
+    summaryElement.dataset.state = "info";
+
+    if (!sourceValue && !destinationValue) {
+      summaryElement.textContent = "Select a source and destination to begin your transfer.";
+      return;
+    }
+
+    if (sourceValue && destinationValue && sourceValue === destinationValue) {
+      summaryElement.dataset.state = "warning";
+      summaryElement.textContent = "Source and destination accounts must be different.";
+      return;
+    }
+
+    if (sourceValue && destinationValue && Number.isFinite(amount)) {
+      summaryElement.dataset.state = "ready";
+      summaryElement.textContent = `Ready to move ${formatCurrency(amount)} from ${getAccountLabel(sourceValue)} to ${getAccountLabel(destinationValue)}.`;
+      return;
+    }
+
+    if (sourceValue && destinationValue) {
+      summaryElement.dataset.state = "ready";
+      summaryElement.textContent = `Preparing to move funds from ${getAccountLabel(sourceValue)} to ${getAccountLabel(destinationValue)}. Enter an amount to continue.`;
+      return;
+    }
+
+    if (sourceValue) {
+      summaryElement.textContent = `Preparing to withdraw from ${getAccountLabel(sourceValue)}. Choose where the money should land.`;
+      return;
+    }
+
+    summaryElement.textContent = `Preparing to deposit into ${getAccountLabel(destinationValue)}. Choose a source to continue.`;
+  };
+
+  const resetFormState = () => {
+    syncDisabledOptions();
+    updateGuidelines();
+    updateSummary();
+  };
+
   const sendTransferRequest = async (form, payload) => {
     const endpoint = form?.dataset.endpoint;
     if (!endpoint) {
@@ -173,69 +290,68 @@ document.addEventListener("DOMContentLoaded", () => {
       updateCards();
       renderTransactions();
       form.reset();
-      updatePresetSummaries();
+      resetFormState();
       showFeedback(form, data.message, "success");
     } catch (error) {
       showFeedback(form, error.message || "Transfer failed. Try again.", "error");
     }
   };
 
-  depositDestination?.addEventListener("change", updatePresetSummaries);
-  withdrawSource?.addEventListener("change", updatePresetSummaries);
+  sourceSelect?.addEventListener("change", () => {
+    syncDisabledOptions();
+    updateGuidelines();
+    updateSummary();
+  });
 
-  if (depositForm) {
-    depositForm.addEventListener("submit", (event) => {
+  destinationSelect?.addEventListener("change", () => {
+    syncDisabledOptions();
+    updateGuidelines();
+    updateSummary();
+  });
+
+  amountInput?.addEventListener("input", () => {
+    updateSummary();
+  });
+
+  if (transferForm) {
+    transferForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      hideFeedback(depositForm);
+      hideFeedback(transferForm);
 
-      const formData = new FormData(depositForm);
-      const amount = sanitizeAmount(formData.get("amount"));
-      const destination = formData.get("destination");
-
-      if (!destination) {
-        showFeedback(depositForm, "Select a destination account.", "error");
-        return;
-      }
-
-      if (!Number.isFinite(amount)) {
-        showFeedback(depositForm, "Enter a valid transfer amount.", "error");
-        return;
-      }
-
-      sendTransferRequest(depositForm, {
-        amount,
-        destination,
-      });
-    });
-  }
-
-  if (withdrawForm) {
-    withdrawForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      hideFeedback(withdrawForm);
-
-      const formData = new FormData(withdrawForm);
+      const formData = new FormData(transferForm);
       const amount = sanitizeAmount(formData.get("amount"));
       const source = formData.get("source");
+      const destination = formData.get("destination");
 
       if (!source) {
-        showFeedback(withdrawForm, "Select a source account.", "error");
+        showFeedback(transferForm, "Select a source account.", "error");
+        return;
+      }
+
+      if (!destination) {
+        showFeedback(transferForm, "Select a destination account.", "error");
+        return;
+      }
+
+      if (source === destination) {
+        showFeedback(transferForm, "Source and destination must be different.", "error");
         return;
       }
 
       if (!Number.isFinite(amount)) {
-        showFeedback(withdrawForm, "Enter a valid transfer amount.", "error");
+        showFeedback(transferForm, "Enter a valid transfer amount.", "error");
         return;
       }
 
-      sendTransferRequest(withdrawForm, {
+      sendTransferRequest(transferForm, {
         amount,
         source,
+        destination,
       });
     });
   }
 
   updateCards();
   renderTransactions();
-  updatePresetSummaries();
+  resetFormState();
 });

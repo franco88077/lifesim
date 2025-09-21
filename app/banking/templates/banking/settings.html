@@ -104,6 +104,62 @@
               <span class="suffix">%</span>
             </div>
           </label>
+          <label>
+            <span>Checking minimum balance</span>
+            <div class="settings-input">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                name="checking_minimum_balance"
+                value="{{ '%.2f'|format(bank_settings.checking_minimum_balance) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </label>
+          <label>
+            <span>Checking fee when below minimum</span>
+            <div class="settings-input">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                name="checking_minimum_fee"
+                value="{{ '%.2f'|format(bank_settings.checking_minimum_fee) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </label>
+          <label>
+            <span>Savings minimum balance</span>
+            <div class="settings-input">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                name="savings_minimum_balance"
+                value="{{ '%.2f'|format(bank_settings.savings_minimum_balance) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </label>
+          <label>
+            <span>Savings fee when below minimum</span>
+            <div class="settings-input">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                name="savings_minimum_fee"
+                value="{{ '%.2f'|format(bank_settings.savings_minimum_fee) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </label>
         </div>
         <button type="submit" class="settings-submit">Save bank settings</button>
       </form>

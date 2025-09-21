@@ -21,6 +21,7 @@ from .services import (
     format_currency,
     get_bank_settings,
     normalize_interest_rate,
+    paginate_transactions,
     quantize_amount,
     update_account_balance,
 )
@@ -77,6 +78,68 @@ def _log_cash_health(accounts: Iterable[BankAccount]) -> None:
             break
 
 
+def _create_transfer_entries(
+    source: BankAccount, destination: BankAccount, amount: Decimal
+) -> list[BankTransaction]:
+    """Create ledger entries for the transfer while skipping cash movements."""
+
+    amount = quantize_amount(amount)
+    description = f"Funds moved from {source.name} to {destination.name}"
+    entries: list[BankTransaction] = []
+
+    if source.slug != "hand":
+        source_description = (
+            "Funds moved from {name} to cash".format(name=source.name)
+            if destination.slug == "hand"
+            else description
+        )
+        source_name = "Cash Withdrawal" if destination.slug == "hand" else "Account Transfer"
+        entries.append(
+            BankTransaction(
+                account=source,
+                name=source_name,
+                description=source_description,
+                direction="debit",
+                amount=amount,
+            )
+        )
+
+    if destination.slug != "hand":
+        destination_description = (
+            "Wallet deposit into {name}".format(name=destination.name)
+            if source.slug == "hand"
+            else description
+        )
+        destination_name = "Cash Allocation" if source.slug == "hand" else "Account Transfer"
+        entries.append(
+            BankTransaction(
+                account=destination,
+                name=destination_name,
+                description=destination_description,
+                direction="credit",
+                amount=amount,
+            )
+        )
+
+    return entries
+
+
+def _apply_transfer(
+    source: BankAccount, destination: BankAccount, amount: Decimal
+) -> None:
+    """Persist the transfer by updating balances and ledger entries."""
+
+    amount = quantize_amount(amount)
+    entries = _create_transfer_entries(source, destination, amount)
+
+    source.balance = quantize_amount(source.balance - amount)
+    destination.balance = quantize_amount(destination.balance + amount)
+
+    db.session.add(source)
+    db.session.add(destination)
+    for entry in entries:
+        db.session.add(entry)
+
 def _json_response(payload: dict[str, object], *, status: int = 200):
     """Return a JSON response with a consistent structure."""
 
@@ -110,15 +173,20 @@ def home():
         technical_details="banking.home rendered account balances and recent transactions.",
     )
 
-    serialized_accounts = [_serialize_account(account) for account in accounts]
-    transactions = fetch_recent_transactions(limit=12)
-    serialized_transactions = [_serialize_transaction(tx) for tx in transactions]
+    display_accounts = [account for account in accounts if account.slug != "hand"]
+    serialized_accounts = [_serialize_account(account) for account in display_accounts]
+    transactions = fetch_recent_transactions(limit=5)
+    has_more_transactions = len(transactions) > 4
+    serialized_transactions = [
+        _serialize_transaction(transaction) for transaction in transactions[:4]
+    ]
 
     return render_template(
         "banking/home.html",
-        title=settings.bank_name,
+        title="Lifesim — Banking Home",
         accounts=serialized_accounts,
         recent_transactions=serialized_transactions,
+        has_more_transactions=has_more_transactions,
         bank_settings=settings,
         active_nav="banking",
         active_banking_tab="home",
@@ -131,6 +199,7 @@ def insights():
 
     ensure_bank_defaults()
     settings = get_bank_settings()
+    accounts = fetch_accounts()
 
     log_manager.record(
         component="Banking",
@@ -142,7 +211,7 @@ def insights():
         technical_details="banking.insights rendered the insight cards and policy notes.",
     )
 
-    insights = build_account_insights(settings)
+    insights = build_account_insights(settings, accounts)
 
     return render_template(
         "banking/insights.html",
@@ -154,6 +223,63 @@ def insights():
     )
 
 
+@bp.route("/transactions")
+def transactions():
+    """Display the full banking ledger with pagination."""
+
+    ensure_bank_defaults()
+    settings = get_bank_settings()
+
+    raw_page = request.args.get("page", default=1, type=int)
+    raw_per_page = request.args.get("per_page", default=10, type=int)
+    per_page = max(1, min(raw_per_page, 25))
+
+    pagination = paginate_transactions(raw_page, per_page)
+    serialized_transactions = [
+        _serialize_transaction(transaction) for transaction in pagination["items"]
+    ]
+
+    if pagination["total"]:
+        display_start = (pagination["page"] - 1) * pagination["per_page"] + 1
+        display_end = min(pagination["page"] * pagination["per_page"], pagination["total"])
+    else:
+        display_start = 0
+        display_end = 0
+
+    pager = {
+        "page": pagination["page"],
+        "per_page": pagination["per_page"],
+        "total": pagination["total"],
+        "pages": pagination["pages"],
+        "has_prev": pagination["page"] > 1,
+        "has_next": pagination["page"] < pagination["pages"],
+        "prev_page": pagination["page"] - 1 if pagination["page"] > 1 else None,
+        "next_page": pagination["page"] + 1 if pagination["page"] < pagination["pages"] else None,
+    }
+
+    log_manager.record(
+        component="Banking",
+        action="view-transactions",
+        level="info",
+        result="success",
+        title="Banking transactions opened",
+        user_summary="Full banking ledger displayed with pagination controls.",
+        technical_details="banking.transactions rendered the paginated transaction history.",
+    )
+
+    return render_template(
+        "banking/transactions.html",
+        title="Lifesim — Banking Transactions",
+        transactions=serialized_transactions,
+        pagination=pager,
+        display_start=display_start,
+        display_end=display_end,
+        bank_settings=settings,
+        active_nav="banking",
+        active_banking_tab="home",
+    )
+
+
 @bp.route("/transfer")
 def transfer():
     """Surface the cash transfer workflow on a dedicated page."""
@@ -161,7 +287,7 @@ def transfer():
     ensure_bank_defaults()
     settings = get_bank_settings()
     accounts = fetch_accounts()
-    banking_state = build_banking_state()
+    banking_state = build_banking_state(settings=settings)
     _log_cash_health(accounts)
 
     log_manager.record(
@@ -187,11 +313,143 @@ def transfer():
     )
 
 
+@bp.post("/api/transfer/move")
+def api_move():
+    """Move money between any two accounts using a unified workflow."""
+
+    ensure_bank_defaults()
+    settings = get_bank_settings()
+    payload = request.get_json(silent=True) or {}
+
+    source_slug = (payload.get("source") or "").strip()
+    destination_slug = (payload.get("destination") or "").strip()
+    amount_raw = payload.get("amount")
+
+    try:
+        amount = quantize_amount(amount_raw)
+    except (ValueError, TypeError):
+        log_manager.record(
+            component="Banking",
+            action="transfer-move",
+            level="error",
+            result="error",
+            title="Transfer rejected — invalid amount",
+            user_summary="Transfer could not be processed because the amount was invalid.",
+            technical_details="banking.api_move rejected payload due to invalid numeric input.",
+        )
+        return _json_error("Enter a valid transfer amount.")
+
+    if amount <= 0:
+        log_manager.record(
+            component="Banking",
+            action="transfer-move",
+            level="warn",
+            result="error",
+            title="Transfer rejected — non-positive amount",
+            user_summary="Transfer amount must be greater than zero.",
+            technical_details="banking.api_move received a non-positive amount.",
+        )
+        return _json_error("Transfer amount must be greater than zero.")
+
+    if not source_slug or not destination_slug:
+        log_manager.record(
+            component="Banking",
+            action="transfer-move",
+            level="error",
+            result="error",
+            title="Transfer rejected — missing accounts",
+            user_summary="Select a source and destination account to continue.",
+            technical_details="banking.api_move received an incomplete transfer payload.",
+        )
+        return _json_error("Select both a source and destination account.")
+
+    if source_slug == destination_slug:
+        log_manager.record(
+            component="Banking",
+            action="transfer-move",
+            level="warn",
+            result="error",
+            title="Transfer rejected — identical accounts",
+            user_summary="Source and destination accounts must be different.",
+            technical_details="banking.api_move prevented a self-transfer request.",
+        )
+        return _json_error("Choose two different accounts.")
+
+    source = find_account(source_slug)
+    destination = find_account(destination_slug)
+
+    if not source or not destination:
+        log_manager.record(
+            component="Banking",
+            action="transfer-move",
+            level="error",
+            result="error",
+            title="Transfer rejected — unknown accounts",
+            user_summary="Transfer failed because one of the accounts could not be found.",
+            technical_details=(
+                f"banking.api_move could not locate source '{source_slug}' or destination '{destination_slug}'."
+            ),
+        )
+        return _json_error("Select valid accounts for the transfer.")
+
+    if amount > source.balance:
+        available = format_currency(source.balance)
+        log_manager.record(
+            component="Banking",
+            action="transfer-move",
+            level="warn",
+            result="error",
+            title="Transfer rejected — insufficient funds",
+            user_summary=f"{source.name} only has {available} available.",
+            technical_details="banking.api_move prevented overdrawing the source account.",
+        )
+        return _json_error(f"{source.name} only has {available} available.")
+
+    try:
+        _apply_transfer(source, destination, amount)
+        db.session.commit()
+    except SQLAlchemyError as exc:
+        db.session.rollback()
+        log_manager.record(
+            component="Banking",
+            action="transfer-move",
+            level="error",
+            result="error",
+            title="Transfer failed — database error",
+            user_summary="The transfer could not be saved. Try again shortly.",
+            technical_details=f"banking.api_move encountered {exc.__class__.__name__}: {exc}",
+        )
+        return _json_error("Unable to complete the transfer at this time.", status=500)
+
+    state = build_banking_state(settings=settings)
+    _log_cash_health(fetch_accounts())
+
+    if source.slug == "hand":
+        message = f"Transferred {format_currency(amount)} from Cash to {destination.name}."
+    elif destination.slug == "hand":
+        message = f"Moved {format_currency(amount)} from {source.name} to Cash."
+    else:
+        message = f"Moved {format_currency(amount)} from {source.name} to {destination.name}."
+
+    log_manager.record(
+        component="Banking",
+        action="transfer-move",
+        level="info",
+        result="success",
+        title="Transfer completed",
+        user_summary=message,
+        technical_details="banking.api_move updated account balances and recorded ledger entries.",
+    )
+
+    return _json_response({"success": True, "message": message, "state": state})
+
+
 @bp.post("/api/transfer/deposit")
 def api_deposit():
     """Move money from cash into a selected account."""
 
     ensure_bank_defaults()
+    settings = get_bank_settings()
     payload = request.get_json(silent=True) or {}
     destination_slug = (payload.get("destination") or "").strip()
     amount_raw = payload.get("amount")
@@ -292,7 +550,7 @@ def api_deposit():
         )
         return _json_error("Unable to complete the deposit at this time.", status=500)
 
-    state = build_banking_state()
+    state = build_banking_state(settings=settings)
     _log_cash_health(fetch_accounts())
 
     log_manager.record(
@@ -316,6 +574,7 @@ def api_withdraw():
     """Move money from an account back into cash."""
 
     ensure_bank_defaults()
+    settings = get_bank_settings()
     payload = request.get_json(silent=True) or {}
     source_slug = (payload.get("source") or "").strip()
     amount_raw = payload.get("amount")
@@ -416,7 +675,7 @@ def api_withdraw():
         )
         return _json_error("Unable to complete the withdrawal at this time.", status=500)
 
-    state = build_banking_state()
+    state = build_banking_state(settings=settings)
     _log_cash_health(fetch_accounts())
 
     log_manager.record(
@@ -494,6 +753,10 @@ def _handle_settings_update(settings) -> dict[str, str]:
     bank_name = (request.form.get("bank_name") or "").strip()
     fee_raw = request.form.get("standard_fee")
     interest_raw = request.form.get("savings_interest_rate")
+    checking_min_balance_raw = request.form.get("checking_minimum_balance")
+    checking_min_fee_raw = request.form.get("checking_minimum_fee")
+    savings_min_balance_raw = request.form.get("savings_minimum_balance")
+    savings_min_fee_raw = request.form.get("savings_minimum_fee")
 
     errors: list[str] = []
 
@@ -516,6 +779,38 @@ def _handle_settings_update(settings) -> dict[str, str]:
         errors.append("Enter a valid, non-negative savings interest rate.")
         interest_rate = settings.savings_interest_rate
 
+    try:
+        checking_minimum_balance = quantize_amount(checking_min_balance_raw)
+        if checking_minimum_balance < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative checking minimum balance.")
+        checking_minimum_balance = settings.checking_minimum_balance
+
+    try:
+        checking_minimum_fee = quantize_amount(checking_min_fee_raw)
+        if checking_minimum_fee < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative checking fee amount.")
+        checking_minimum_fee = settings.checking_minimum_fee
+
+    try:
+        savings_minimum_balance = quantize_amount(savings_min_balance_raw)
+        if savings_minimum_balance < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative savings minimum balance.")
+        savings_minimum_balance = settings.savings_minimum_balance
+
+    try:
+        savings_minimum_fee = quantize_amount(savings_min_fee_raw)
+        if savings_minimum_fee < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative savings fee amount.")
+        savings_minimum_fee = settings.savings_minimum_fee
+
     if errors:
         return {"type": "error", "message": " ".join(errors)}
 
@@ -523,6 +818,10 @@ def _handle_settings_update(settings) -> dict[str, str]:
         settings.bank_name = bank_name
         settings.standard_fee = fee_amount
         settings.savings_interest_rate = interest_rate
+        settings.checking_minimum_balance = checking_minimum_balance
+        settings.checking_minimum_fee = checking_minimum_fee
+        settings.savings_minimum_balance = savings_minimum_balance
+        settings.savings_minimum_fee = savings_minimum_fee
         db.session.add(settings)
         db.session.commit()
     except SQLAlchemyError as exc:
@@ -544,7 +843,11 @@ def _handle_settings_update(settings) -> dict[str, str]:
         level="info",
         result="success",
         title="Bank settings updated",
-        user_summary=f"Bank renamed to {bank_name} with fee {format_currency(fee_amount)} and interest {interest_rate:.3f}%.",
+        user_summary=(
+            f"Bank renamed to {bank_name} with fee {format_currency(fee_amount)}, interest {interest_rate:.3f}%"
+            f", checking minimum {format_currency(checking_minimum_balance)} ({format_currency(checking_minimum_fee)} fee)"
+            f", savings minimum {format_currency(savings_minimum_balance)} ({format_currency(savings_minimum_fee)} fee)."
+        ),
         technical_details="banking._handle_settings_update committed new configuration values.",
     )
 

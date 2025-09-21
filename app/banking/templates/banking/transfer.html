@@ -71,67 +71,82 @@
         </div>
       </div>
       <div class="transfer-panel" aria-label="Manage cash movement">
-        <article class="transfer-card">
-          <h2>Move cash into accounts</h2>
-          <p>Shift money from your wallet into checking or savings. The ledger records the destination.</p>
+        <article class="transfer-card transfer-card--wide">
+          <h2>Transfer funds</h2>
+          <p>Move money between any two accounts. The system enforces minimum balances and records the ledger entries for checking and savings.</p>
           <form
-            id="form-hand-to-account"
+            id="form-account-transfer"
             class="transfer-form"
-            data-endpoint="{{ url_for('banking.api_deposit') }}"
+            data-endpoint="{{ url_for('banking.api_move') }}"
           >
-            <div class="form-row">
-              <label for="hand-transfer-amount">Amount</label>
-              <input
-                id="hand-transfer-amount"
-                name="amount"
-                type="number"
-                min="0.01"
-                step="0.01"
-                required
-              />
+            <div class="form-grid">
+              <label for="account-transfer-source">
+                <span>Source account</span>
+                <select
+                  id="account-transfer-source"
+                  name="source"
+                  required
+                  data-transfer-source
+                >
+                  <option value="" disabled selected>Select a source</option>
+                  {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label for="account-transfer-destination">
+                <span>Destination account</span>
+                <select
+                  id="account-transfer-destination"
+                  name="destination"
+                  required
+                  data-transfer-destination
+                >
+                  <option value="" disabled selected>Select a destination</option>
+                  {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label for="account-transfer-amount" class="form-grid__amount">
+                <span>Amount</span>
+                <input
+                  id="account-transfer-amount"
+                  name="amount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  required
+                />
+              </label>
             </div>
-            <div class="form-row">
-              <label for="hand-transfer-destination">Destination</label>
-              <select id="hand-transfer-destination" name="destination" required>
-                <option value="" disabled selected>Select an account</option>
-                <option value="checking">Checking</option>
-                <option value="savings">Savings</option>
-              </select>
+            <div class="transfer-summary" data-transfer-summary data-state="info">
+              Select a source and destination to preview the transfer narrative and guardrails.
             </div>
-            <button type="submit" class="transfer-button">Deposit into account</button>
+            <div class="transfer-guidelines" data-transfer-guidelines data-state="idle">
+              <div class="transfer-guideline" data-guideline="source" hidden></div>
+              <div class="transfer-guideline" data-guideline="destination" hidden></div>
+            </div>
+            <button type="submit" class="transfer-button">Submit transfer</button>
             <p class="form-feedback" data-feedback hidden></p>
           </form>
-        </article>
-        <article class="transfer-card">
-          <h2>Replenish cash</h2>
-          <p>Move funds out of checking or savings to keep spending money within reach.</p>
-          <form
-            id="form-account-to-hand"
-            class="transfer-form"
-            data-endpoint="{{ url_for('banking.api_withdraw') }}"
-          >
-            <div class="form-row">
-              <label for="account-withdraw-amount">Amount</label>
-              <input
-                id="account-withdraw-amount"
-                name="amount"
-                type="number"
-                min="0.01"
-                step="0.01"
-                required
-              />
-            </div>
-            <div class="form-row">
-              <label for="account-withdraw-source">Source</label>
-              <select id="account-withdraw-source" name="source" required>
-                <option value="" disabled selected>Select an account</option>
-                <option value="checking">Checking</option>
-                <option value="savings">Savings</option>
-              </select>
-            </div>
-            <button type="submit" class="transfer-button">Move funds to cash</button>
-            <p class="form-feedback" data-feedback hidden></p>
-          </form>
+          <section class="transfer-requirements" aria-label="Account requirements">
+            <h3>Minimum balance guardrails</h3>
+            <ul>
+              <li>
+                <strong>Checking:</strong>
+                Keep {{ '${:,.2f}'.format(bank_settings.checking_minimum_balance) }} on hand or a
+                {{ '${:,.2f}'.format(bank_settings.checking_minimum_fee) }} fee posts on the
+                anchor date.
+              </li>
+              <li>
+                <strong>Savings:</strong>
+                Hold {{ '${:,.2f}'.format(bank_settings.savings_minimum_balance) }} to avoid a
+                {{ '${:,.2f}'.format(bank_settings.savings_minimum_fee) }} maintenance charge when
+                interest credits.
+              </li>
+            </ul>
+          </section>
         </article>
       </div>
     </section>

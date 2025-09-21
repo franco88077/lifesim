@@ -1,5 +1,15 @@
 # Lifesim change log
-
+## 2025-09-25
+- **What**: Rebuilt banking transfers into a unified source-to-destination flow, added a full ledger view, refreshed account
+  insights with anchor date calculations, and tightened the dashboard styling.
+- **How**: Introduced a general `/api/transfer/move` endpoint with reusable balance update helpers, created a paginated
+  `/banking/transactions` route and template, expanded settings to capture per-account minimums and fees, enhanced interest
+  insight logic to project next payouts, and retuned the home/transfer UI plus CSS to emphasise ledger actions without cash
+  noise.
+- **Why**: Players needed a single transfer form that respects account guardrails, clearer visibility into upcoming charges
+  and interest credits, and a way to audit more than four transactions without cash cluttering the history.
+- **Purpose**: Keeps cash management intuitive, highlights policy-driven anchor dates, and makes it easier to review and
+  configure banking behaviour while maintaining accessible styling.
 ## 2025-09-24
 - **What**: Simplified the banking dashboard language, resized account tiles, and hardened transfer commits.
 - **How**: Replaced canned descriptions on the home and transfer templates, tightened typography in the
