@@ -1,5 +1,15 @@
 # Lifesim change log
 
+## 2025-09-23
+- **What**: Refined the banking transaction ledger with inline dividers and scaled down the account cards
+  for cash, checking, and savings.
+- **How**: Adjusted the banking stylesheet to remove card backgrounds from transactions, add subtle list
+  separators, and tighten typography plus spacing on the account summaries.
+- **Why**: The banking dashboard needed a cleaner, corporate look with clearer separation between ledger
+  entries and less overpowering account headings.
+- **Purpose**: Provides a minimalist presentation that keeps focus on the transaction data while ensuring
+  account labels feel balanced within the dashboard layout.
+
 ## 2025-09-22
 - **What**: Rebuilt the banking home into a two-column Account Activity view, introduced a dedicated insights
   page, refreshed the transfer center, and renamed Money on Hand to Cash across the banking module.
