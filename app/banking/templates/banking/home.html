@@ -46,7 +46,6 @@
     <section class="banking-overview">
       <header class="banking-overview__header">
         <h1>{{ bank_settings.bank_name }}</h1>
-        <p>Monitor balances and account activity across every banking channel.</p>
       </header>
 
       {% if missing_accounts %}
@@ -77,15 +76,9 @@
       {% endif %}
 
       <section class="account-activity" aria-label="Account activity">
-        <header class="account-activity__header">
-          <h2>Account Activity</h2>
-        </header>
         <div class="account-activity__grid">
           <div class="account-activity__transactions" aria-label="Recent transactions">
             <h3>Recent Transactions</h3>
-            <p class="account-activity__description">
-              The ledger captures deposits and withdrawals the moment they are submitted.
-            </p>
             {% if recent_transactions %}
               <ul class="transaction-list">
                 {% for transaction in recent_transactions %}
@@ -117,7 +110,6 @@
           </div>
           <div class="account-activity__balances" aria-label="Account balances">
             <h3>Account Balances</h3>
-            <p class="account-activity__description">Track the latest totals for each account.</p>
             {% if not has_open_accounts %}
               <p class="account-activity__empty">
                 No banking accounts are open yet. Use the Open Account action above to get started.

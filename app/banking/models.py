@@ -40,6 +40,15 @@ class BankSettings(db.Model):
     savings_opening_deposit: Decimal = db.Column(
         db.Numeric(10, 2), nullable=False, default=Decimal("50.00")
     )
+    bank_closure_fee: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("35.00")
+    )
+    checking_closure_fee: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("25.00")
+    )
+    savings_closure_fee: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("15.00")
+    )
     created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at: datetime = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
@@ -58,6 +67,7 @@ class BankAccount(db.Model):
     name: str = db.Column(db.String(120), nullable=False)
     category: str = db.Column(db.String(64), nullable=False)
     balance: Decimal = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    is_closed: bool = db.Column(db.Boolean, nullable=False, default=False)
     created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at: datetime = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False

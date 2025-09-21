@@ -282,12 +282,12 @@
 }
 
 .account-card {
-  background: var(--surface-alt);
+  background: #f9fbff;
   border: 1px solid #dfe4ec;
-  border-radius: 0.6rem;
-  padding: clamp(0.9rem, 2.2vw, 1.25rem);
+  border-radius: 0.65rem;
+  padding: clamp(0.95rem, 2.2vw, 1.3rem);
   display: grid;
-  gap: 0.55rem;
+  gap: 0.6rem;
 }
 
 .account-card header {
@@ -297,7 +297,7 @@
 
 .account-card header h2 {
   margin: 0;
-  font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
   font-weight: 600;
   line-height: 1.3;
 }
@@ -313,8 +313,9 @@
 
 .account-card__balance {
   margin: 0;
-  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .account-due {
@@ -887,10 +888,59 @@
   gap: 1.5rem;
 }
 
+.settings-fieldset {
+  border: 1px solid #dfe4ec;
+  border-radius: 0.85rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  display: grid;
+  gap: 1rem;
+}
+
+.settings-fieldset legend {
+  font-weight: 700;
+  padding: 0 0.4rem;
+}
+
+.settings-ledger {
+  border: 1px solid #dfe4ec;
+  border-radius: 0.85rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  display: grid;
+  gap: 1rem;
+}
+
+.settings-ledger h3 {
+  margin: 0;
+}
+
+.settings-ledger__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.settings-ledger__item h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.settings-ledger__item p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .settings-grid {
   display: grid;
   gap: 1.25rem;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.settings-grid--paired {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .settings-form label {
@@ -928,6 +978,16 @@
   gap: 1rem;
 }
 
+.settings-account-status {
+  margin: 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.settings-account-status--closed {
+  color: var(--error);
+}
+
 .settings-account-card header h3 {
   margin: 0;
 }
@@ -958,6 +1018,61 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.settings-closure-grid {
+  display: grid;
+  gap: clamp(1rem, 2.5vw, 1.5rem);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.settings-closure-card {
+  background: var(--surface-alt);
+  border: 1px solid #dfe4ec;
+  border-radius: 0.85rem;
+  padding: clamp(1.1rem, 2.5vw, 1.5rem);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.settings-closure-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.settings-closure-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.settings-closure-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--accent);
+  color: #ffffff;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.settings-closure-button:hover,
+.settings-closure-button:focus {
+  background: var(--accent-alt);
+}
+
+.settings-closure-button:disabled {
+  background: var(--border);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.settings-closure-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

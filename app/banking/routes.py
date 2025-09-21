@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from ..extensions import db
 from ..logging_service import log_manager
 from . import bp
-from .models import BankAccount, BankTransaction
+from .models import BankAccount, BankSettings, BankTransaction
 from .services import (
     decimal_to_number,
     build_account_due_items,
@@ -38,6 +38,7 @@ def _serialize_account(account: BankAccount) -> dict[str, object]:
         "type": account.category or None,
         "balance": float(quantize_amount(account.balance)),
         "display_balance": format_currency(account.balance),
+        "is_closed": getattr(account, "is_closed", False),
     }
 
 
@@ -189,10 +190,10 @@ def home():
 
     display_accounts = [account for account in accounts if account.slug != "hand"]
     serialized_accounts = [_serialize_account(account) for account in display_accounts]
-    transactions = fetch_recent_transactions(limit=5)
-    has_more_transactions = len(transactions) > 4
+    transactions = fetch_recent_transactions(limit=6)
+    has_more_transactions = len(transactions) > 5
     serialized_transactions = [
-        _serialize_transaction(transaction) for transaction in transactions[:4]
+        _serialize_transaction(transaction) for transaction in transactions[:5]
     ]
 
     account_opening_requirements = {
@@ -374,14 +375,16 @@ def api_open_accounts():
         },
     }
 
-    selections: list[tuple[str, Decimal]] = []
+    selections: list[tuple[str, Decimal, bool]] = []
     errors: list[str] = []
 
     for slug, config in account_configs.items():
         if slug not in requested_accounts:
             continue
 
-        if find_account(slug):
+        existing_account = find_account(slug, include_closed=True)
+
+        if existing_account and not existing_account.is_closed:
             errors.append(f"{config['name']} is already open.")
             continue
 
@@ -403,7 +406,7 @@ def api_open_accounts():
             errors.append(f"Deposit a positive amount for the {config['name'].lower()}.")
             continue
 
-        selections.append((slug, deposit_amount))
+        selections.append((slug, deposit_amount, bool(existing_account)))
 
     if errors:
         return _json_error(" ".join(errors))
@@ -420,16 +423,27 @@ def api_open_accounts():
 
     created_accounts: list[BankAccount] = []
     try:
-        for slug, amount in selections:
+        for slug, amount, is_reopening in selections:
             config = account_configs[slug]
-            account = BankAccount(
-                slug=slug,
-                name=config["name"],
-                category=config["category"],
-                balance=amount,
-            )
-            db.session.add(account)
-            db.session.flush()
+            if is_reopening:
+                account = find_account(slug, include_closed=True)
+                if not account:
+                    continue
+                account.name = config["name"]
+                account.category = config["category"]
+                account.balance = quantize_amount(amount)
+                account.is_closed = False
+                db.session.add(account)
+            else:
+                account = BankAccount(
+                    slug=slug,
+                    name=config["name"],
+                    category=config["category"],
+                    balance=amount,
+                    is_closed=False,
+                )
+                db.session.add(account)
+                db.session.flush()
             db.session.add(
                 BankTransaction(
                     account=account,
@@ -904,6 +918,8 @@ def settings():
             feedback = _handle_balance_update(accounts)
         elif intent == "reset-balance":
             feedback = _handle_balance_reset(accounts)
+        elif intent == "close-accounts":
+            feedback = _handle_account_closure(settings)
         else:
             feedback = {
                 "type": "error",
@@ -911,17 +927,19 @@ def settings():
             }
 
         settings = get_bank_settings()
-        accounts = fetch_accounts()
+        accounts = fetch_accounts(include_closed=True)
 
     _log_cash_health(accounts)
 
     serialized_accounts = [_serialize_account(account) for account in accounts]
+    account_lookup = {account["id"]: account for account in serialized_accounts}
 
     return render_template(
         "banking/settings.html",
         title="Lifesim — Banking Settings",
         bank_settings=settings,
         accounts=serialized_accounts,
+        account_lookup=account_lookup,
         feedback=feedback,
         active_nav="banking",
         active_banking_tab="settings",
@@ -940,6 +958,9 @@ def _handle_settings_update(settings) -> dict[str, str]:
     savings_min_balance_raw = request.form.get("savings_minimum_balance")
     savings_min_fee_raw = request.form.get("savings_minimum_fee")
     savings_opening_raw = request.form.get("savings_opening_deposit")
+    bank_closure_fee_raw = request.form.get("bank_closure_fee")
+    checking_closure_fee_raw = request.form.get("checking_closure_fee")
+    savings_closure_fee_raw = request.form.get("savings_closure_fee")
 
     errors: list[str] = []
 
@@ -1010,6 +1031,30 @@ def _handle_settings_update(settings) -> dict[str, str]:
         errors.append("Enter a valid, non-negative savings opening deposit.")
         savings_opening_deposit = settings.savings_opening_deposit
 
+    try:
+        bank_closure_fee = quantize_amount(bank_closure_fee_raw)
+        if bank_closure_fee < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative bank closure fee.")
+        bank_closure_fee = settings.bank_closure_fee
+
+    try:
+        checking_closure_fee = quantize_amount(checking_closure_fee_raw)
+        if checking_closure_fee < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative checking closure fee.")
+        checking_closure_fee = settings.checking_closure_fee
+
+    try:
+        savings_closure_fee = quantize_amount(savings_closure_fee_raw)
+        if savings_closure_fee < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative savings closure fee.")
+        savings_closure_fee = settings.savings_closure_fee
+
     if errors:
         return {"type": "error", "message": " ".join(errors)}
 
@@ -1023,6 +1068,9 @@ def _handle_settings_update(settings) -> dict[str, str]:
         settings.savings_minimum_fee = savings_minimum_fee
         settings.checking_opening_deposit = checking_opening_deposit
         settings.savings_opening_deposit = savings_opening_deposit
+        settings.bank_closure_fee = bank_closure_fee
+        settings.checking_closure_fee = checking_closure_fee
+        settings.savings_closure_fee = savings_closure_fee
         db.session.add(settings)
         db.session.commit()
     except SQLAlchemyError as exc:
@@ -1049,7 +1097,10 @@ def _handle_settings_update(settings) -> dict[str, str]:
             f", checking minimum {format_currency(checking_minimum_balance)} ({format_currency(checking_minimum_fee)} fee)"
             f", savings minimum {format_currency(savings_minimum_balance)} ({format_currency(savings_minimum_fee)} fee)"
             f", checking opening deposit {format_currency(checking_opening_deposit)}"
-            f", savings opening deposit {format_currency(savings_opening_deposit)}."
+            f", savings opening deposit {format_currency(savings_opening_deposit)}"
+            f", bank closure fee {format_currency(bank_closure_fee)}"
+            f", checking closure fee {format_currency(checking_closure_fee)}"
+            f", savings closure fee {format_currency(savings_closure_fee)}."
         ),
         technical_details="banking._handle_settings_update committed new configuration values.",
     )
@@ -1069,6 +1120,12 @@ def _handle_balance_update(accounts: Iterable[BankAccount]) -> dict[str, str]:
     target = next((acc for acc in accounts if acc.slug == account_slug), None)
     if not target:
         return {"type": "error", "message": "Select a valid account to update."}
+
+    if getattr(target, "is_closed", False):
+        return {
+            "type": "error",
+            "message": "Reopen the account before updating its balance.",
+        }
 
     try:
         amount = quantize_amount(amount_raw)
@@ -1117,6 +1174,12 @@ def _handle_balance_reset(accounts: Iterable[BankAccount]) -> dict[str, str]:
     if not target:
         return {"type": "error", "message": "Select a valid account to reset."}
 
+    if getattr(target, "is_closed", False):
+        return {
+            "type": "error",
+            "message": "Closed accounts already report a zero balance.",
+        }
+
     try:
         update_account_balance(target, Decimal("0"))
         db.session.commit()
@@ -1147,3 +1210,148 @@ def _handle_balance_reset(accounts: Iterable[BankAccount]) -> dict[str, str]:
         "type": "success",
         "message": f"{target.name} reset to $0.00.",
     }
+
+
+def _handle_account_closure(settings: BankSettings) -> dict[str, str]:
+    """Close selected accounts and move balances to cash."""
+
+    target = (request.form.get("target") or "").strip()
+    valid_targets = {"all", "checking", "savings"}
+
+    if target not in valid_targets:
+        return {"type": "error", "message": "Choose a valid closure option."}
+
+    cash_account = find_account("hand", include_closed=True)
+    if not cash_account:
+        return {"type": "error", "message": "Cash account is unavailable."}
+
+    slug_to_name = {
+        "checking": "Checking Account",
+        "savings": "Savings Account",
+    }
+    requested_slugs = ("checking", "savings") if target == "all" else (target,)
+
+    accounts_to_close: list[BankAccount] = []
+    for slug in requested_slugs:
+        account = find_account(slug)
+        if account:
+            accounts_to_close.append(account)
+
+    if not accounts_to_close:
+        if target == "all":
+            message = "All accounts are already closed."
+        else:
+            message = f"{slug_to_name[target]} is already closed."
+        return {"type": "error", "message": message}
+
+    total_transfer = Decimal("0.00")
+    closed_labels: list[str] = []
+
+    try:
+        for account in accounts_to_close:
+            balance = quantize_amount(account.balance)
+            closed_labels.append(account.name)
+
+            if balance > 0:
+                db.session.add(
+                    BankTransaction(
+                        account=account,
+                        name="Account Closed",
+                        description="Account closed and funds moved to cash.",
+                        direction="debit",
+                        amount=balance,
+                    )
+                )
+                db.session.add(
+                    BankTransaction(
+                        account=cash_account,
+                        name=f"{account.name} Closure Transfer",
+                        description=f"Funds from {account.name} moved to cash during closure.",
+                        direction="credit",
+                        amount=balance,
+                    )
+                )
+                total_transfer += balance
+
+            account.balance = Decimal("0.00")
+            account.is_closed = True
+            db.session.add(account)
+
+        if total_transfer > 0:
+            cash_account.balance = quantize_amount(cash_account.balance + total_transfer)
+
+        fee_lookup = {
+            "all": quantize_amount(settings.bank_closure_fee),
+            "checking": quantize_amount(settings.checking_closure_fee),
+            "savings": quantize_amount(settings.savings_closure_fee),
+        }
+        fee_label_lookup = {
+            "all": "Bank", 
+            "checking": "Checking", 
+            "savings": "Savings",
+        }
+
+        closure_fee = fee_lookup.get(target, Decimal("0.00"))
+        collected_fee = Decimal("0.00")
+
+        if closure_fee > 0:
+            available_fee = min(quantize_amount(cash_account.balance), closure_fee)
+            if available_fee > 0:
+                cash_account.balance = quantize_amount(cash_account.balance - available_fee)
+                collected_fee = available_fee
+                db.session.add(
+                    BankTransaction(
+                        account=cash_account,
+                        name="Closure Fee",
+                        description=(
+                            f"{fee_label_lookup[target]} closure fee collected during account closure."
+                        ),
+                        direction="debit",
+                        amount=available_fee,
+                    )
+                )
+
+        db.session.add(cash_account)
+        db.session.commit()
+    except SQLAlchemyError as exc:
+        db.session.rollback()
+        log_manager.record(
+            component="Banking",
+            action="close-accounts",
+            level="error",
+            result="error",
+            title="Account closure failed",
+            user_summary="Accounts could not be closed due to a database error.",
+            technical_details=f"banking._handle_account_closure encountered {exc.__class__.__name__}: {exc}",
+        )
+        return {
+            "type": "error",
+            "message": "Unable to close accounts at this time.",
+        }
+
+    closed_summary = ", ".join(closed_labels)
+    transfer_display = format_currency(total_transfer)
+
+    if collected_fee > 0:
+        fee_display = format_currency(collected_fee)
+        fee_message = f" Collected a {fee_display} closure fee."
+    else:
+        fee_message = " No closure fee was applied."
+
+    log_manager.record(
+        component="Banking",
+        action="close-accounts",
+        level="info",
+        result="success",
+        title="Accounts closed",
+        user_summary=(
+            f"Closed {closed_summary} and moved {transfer_display} to cash.{fee_message}"
+        ),
+        technical_details="banking._handle_account_closure transferred balances and updated account status.",
+    )
+
+    message = (
+        f"Closed {closed_summary} and moved {transfer_display} to cash.{fee_message}"
+    )
+
+    return {"type": "success", "message": message}
