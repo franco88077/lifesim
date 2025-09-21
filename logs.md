@@ -1,4 +1,14 @@
 # Lifesim change log
+## 2025-09-27
+- **What**: Moved the bank account onboarding workflow from the main hub to the banking home page and restored the
+  account opening interaction.
+- **How**: Reworked the index route, template, styles, and script to drop the modal, extended the banking home route with
+  onboarding data, added the modal and call-to-action to the banking template, ported supporting styles and JavaScript,
+  and refreshed copy to direct players to the new action.
+- **Why**: Opening accounts on the hub was confusing and the button no longer responded, preventing players from creating
+  checking or savings accounts.
+- **Purpose**: Centralises onboarding where balances live, keeps the hub focused on at-a-glance metrics, and ensures the
+  open-account button now launches the modal and calls the API successfully.
 ## 2025-09-26
 - **What**: Introduced an account opening workflow, revamped banking insights, added due summaries, and ensured the bank
   name is consistent across the app.
