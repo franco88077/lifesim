@@ -41,16 +41,12 @@
 
     <section class="banking-overview">
       <header class="banking-overview__header">
-        <h1>Lifesim — Banking Home</h1>
-        <p>
-          {{ bank_settings.bank_name }} keeps your cash, checking, and savings balances synchronized so every
-          decision is recorded and visible.
-        </p>
+        <h1>{{ bank_settings.bank_name }}</h1>
+        <p>Monitor balances and account activity across every banking channel.</p>
       </header>
       <section class="account-activity" aria-label="Account activity">
         <header class="account-activity__header">
           <h2>Account Activity</h2>
-          <p>Review your latest transactions alongside current balances for cash, checking, and savings.</p>
         </header>
         <div class="account-activity__grid">
           <div class="account-activity__transactions" aria-label="Recent transactions">
@@ -79,20 +75,19 @@
           </div>
           <div class="account-activity__balances" aria-label="Account balances">
             <h3>Account balances</h3>
-            <p class="account-activity__description">
-              Balances refresh instantly after each transfer so you always know what is available.
-            </p>
+            <p class="account-activity__description">Track the latest totals for each account.</p>
             <div class="account-grid">
               {% for account in accounts %}
                 <article class="account-card" data-account-card data-account="{{ account.id }}">
                   <header>
-                    <p class="account-card__type">{{ account.type }}</p>
+                    {% if account.type %}
+                      <p class="account-card__type">{{ account.type }}</p>
+                    {% endif %}
                     <h2>{{ account.name }}</h2>
                   </header>
                   <p class="account-card__balance">
                     <span data-balance-value>{{ account.display_balance }}</span>
                   </p>
-                  <p class="account-card__hint">Balances update instantly after each transfer.</p>
                 </article>
               {% endfor %}
             </div>

@@ -32,7 +32,7 @@ def _serialize_account(account: BankAccount) -> dict[str, object]:
     return {
         "id": account.slug,
         "name": account.name,
-        "type": account.category,
+        "type": account.category or None,
         "balance": float(quantize_amount(account.balance)),
         "display_balance": format_currency(account.balance),
     }
@@ -116,7 +116,7 @@ def home():
 
     return render_template(
         "banking/home.html",
-        title="Lifesim — Banking Home",
+        title=settings.bank_name,
         accounts=serialized_accounts,
         recent_transactions=serialized_transactions,
         bank_settings=settings,
@@ -265,20 +265,20 @@ def api_deposit():
     description = f"Wallet deposit into {destination.name}"
 
     try:
-        with db.session.begin():
-            hand.balance = quantize_amount(hand.balance - amount)
-            destination.balance = quantize_amount(destination.balance + amount)
-            db.session.add(hand)
-            db.session.add(destination)
-            db.session.add(
-                BankTransaction(
-                    account=destination,
-                    name="Cash Allocation",
-                    description=description,
-                    direction="credit",
-                    amount=amount,
-                )
+        hand.balance = quantize_amount(hand.balance - amount)
+        destination.balance = quantize_amount(destination.balance + amount)
+        db.session.add(hand)
+        db.session.add(destination)
+        db.session.add(
+            BankTransaction(
+                account=destination,
+                name="Cash Allocation",
+                description=description,
+                direction="credit",
+                amount=amount,
             )
+        )
+        db.session.commit()
     except SQLAlchemyError as exc:
         db.session.rollback()
         log_manager.record(
@@ -389,20 +389,20 @@ def api_withdraw():
     description = f"Funds moved from {source.name} to cash"
 
     try:
-        with db.session.begin():
-            source.balance = quantize_amount(source.balance - amount)
-            hand.balance = quantize_amount(hand.balance + amount)
-            db.session.add(source)
-            db.session.add(hand)
-            db.session.add(
-                BankTransaction(
-                    account=source,
-                    name="Cash Withdrawal",
-                    description=description,
-                    direction="debit",
-                    amount=amount,
-                )
+        source.balance = quantize_amount(source.balance - amount)
+        hand.balance = quantize_amount(hand.balance + amount)
+        db.session.add(source)
+        db.session.add(hand)
+        db.session.add(
+            BankTransaction(
+                account=source,
+                name="Cash Withdrawal",
+                description=description,
+                direction="debit",
+                amount=amount,
             )
+        )
+        db.session.commit()
     except SQLAlchemyError as exc:
         db.session.rollback()
         log_manager.record(

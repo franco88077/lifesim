@@ -14,19 +14,19 @@ DEFAULT_ACCOUNTS: tuple[dict[str, Any], ...] = (
     {
         "slug": "hand",
         "name": "Cash",
-        "category": "Liquid Cash",
+        "category": "",
         "balance": Decimal("280.50"),
     },
     {
         "slug": "checking",
         "name": "Checking Account",
-        "category": "Daily Spending",
+        "category": "",
         "balance": Decimal("5400.25"),
     },
     {
         "slug": "savings",
         "name": "Savings Account",
-        "category": "Emergency Fund",
+        "category": "",
         "balance": Decimal("8200.00"),
     },
 )
