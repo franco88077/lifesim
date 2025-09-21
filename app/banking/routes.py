@@ -471,11 +471,11 @@ def _handle_settings_update(settings) -> dict[str, str]:
         return {"type": "error", "message": " ".join(errors)}
 
     try:
-        with db.session.begin():
-            settings.bank_name = bank_name
-            settings.standard_fee = fee_amount
-            settings.savings_interest_rate = interest_rate
-            db.session.add(settings)
+        settings.bank_name = bank_name
+        settings.standard_fee = fee_amount
+        settings.savings_interest_rate = interest_rate
+        db.session.add(settings)
+        db.session.commit()
     except SQLAlchemyError as exc:
         db.session.rollback()
         log_manager.record(
@@ -523,8 +523,8 @@ def _handle_balance_update(accounts: Iterable[BankAccount]) -> dict[str, str]:
         return {"type": "error", "message": "Enter a valid, non-negative amount."}
 
     try:
-        with db.session.begin():
-            update_account_balance(target, amount)
+        update_account_balance(target, amount)
+        db.session.commit()
     except SQLAlchemyError as exc:
         db.session.rollback()
         log_manager.record(
@@ -563,8 +563,8 @@ def _handle_balance_reset(accounts: Iterable[BankAccount]) -> dict[str, str]:
         return {"type": "error", "message": "Select a valid account to reset."}
 
     try:
-        with db.session.begin():
-            update_account_balance(target, Decimal("0"))
+        update_account_balance(target, Decimal("0"))
+        db.session.commit()
     except SQLAlchemyError as exc:
         db.session.rollback()
         log_manager.record(
