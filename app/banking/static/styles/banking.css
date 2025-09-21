@@ -1,3 +1,50 @@
+.banking-subnav {
+  margin-bottom: clamp(1rem, 3vw, 1.75rem);
+  display: flex;
+  justify-content: center;
+}
+
+.banking-tabs {
+  display: flex;
+  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.banking-tab {
+  color: #e2e8f0;
+  text-decoration: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.banking-tab:hover,
+.banking-tab:focus {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.banking-tab.is-active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(14, 165, 233, 0.85));
+  color: #0f172a;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .banking-tabs {
+    border-radius: 1rem;
+    justify-content: center;
+  }
+
+  .banking-tab {
+    flex: 1 1 45%;
+    text-align: center;
+  }
+}
+
 .banking-overview {
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(8, 47, 73, 0.8));
   border-radius: 1.75rem;
@@ -8,6 +55,12 @@
 .banking-overview__header h1 {
   margin: 0 0 0.5rem;
   font-size: clamp(2rem, 3.5vw, 2.8rem);
+}
+
+.banking-overview__header p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.8);
+  max-width: 42rem;
 }
 
 .account-grid {
@@ -67,6 +120,23 @@
 .transfer-card p {
   margin: 0;
   color: rgba(226, 232, 240, 0.8);
+}
+
+.transfer-card__note {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  color: rgba(226, 232, 240, 0.85);
+  line-height: 1.45;
+}
+
+.transfer-card__summary {
+  margin: 0;
+  background: rgba(30, 64, 175, 0.35);
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #bfdbfe;
 }
 
 .transfer-form {
@@ -130,11 +200,71 @@
   color: #34d399;
 }
 
-.goal-tracker {
+.banking-insights {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
   background: rgba(15, 23, 42, 0.75);
   border-radius: 1.75rem;
   padding: clamp(1.5rem, 4vw, 3.5rem);
   border: 1px solid rgba(15, 118, 110, 0.35);
+  display: grid;
+  gap: 1.75rem;
+}
+
+.banking-insights header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.insight-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.insight-card {
+  background: rgba(8, 47, 73, 0.6);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.insight-card h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.insight-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.insight-item {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.insight-label {
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.insight-value {
+  color: #e2e8f0;
+  line-height: 1.4;
+}
+
+.insight-footer {
+  border-top: 1px solid rgba(94, 234, 212, 0.25);
+  padding-top: 1rem;
+  color: rgba(226, 232, 240, 0.85);
+  line-height: 1.5;
 }
 
 .transaction-ledger {
@@ -198,57 +328,4 @@
   margin: 0;
   color: rgba(226, 232, 240, 0.75);
   font-style: italic;
-}
-
-.goal-tracker header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.goal-tracker h2 {
-  margin: 0;
-}
-
-.goal-toggle {
-  background: transparent;
-  border: 1px solid rgba(45, 212, 191, 0.6);
-  color: rgba(209, 250, 229, 0.9);
-  padding: 0.5rem 1.25rem;
-  border-radius: 999px;
-}
-
-.goal-grid {
-  margin-top: 2rem;
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-.goal {
-  background: rgba(22, 78, 99, 0.5);
-  border-radius: 1.25rem;
-  padding: 1.25rem;
-  border: 1px solid rgba(45, 212, 191, 0.35);
-  display: grid;
-  gap: 0.5rem;
-}
-
-.goal__progress {
-  height: 10px;
-  background: rgba(15, 23, 42, 0.6);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.goal__progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #22d3ee, #34d399);
-  width: 0;
-}
-
-.goal.projected .goal__progress-bar {
-  background: linear-gradient(90deg, #fde68a, #f97316);
 }
