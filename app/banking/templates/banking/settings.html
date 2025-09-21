@@ -1,0 +1,144 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('banking.static', filename='styles/banking.css') }}" />
+{% endblock %}
+
+{% block content %}
+  <div class="banking-shell">
+    <section class="banking-subnav" aria-label="Banking navigation">
+      <nav class="banking-tabs">
+        <a
+          href="{{ url_for('banking.home') }}"
+          class="banking-tab{% if active_banking_tab == 'home' %} is-active{% endif %}"
+          {% if active_banking_tab == 'home' %}aria-current="page"{% endif %}
+        >
+          Banking Home
+        </a>
+        <a
+          href="{{ url_for('banking.transfer') }}"
+          class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
+          {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
+        >
+          Banking Transfer
+        </a>
+        <a
+          href="{{ url_for('banking.settings') }}"
+          class="banking-tab{% if active_banking_tab == 'settings' %} is-active{% endif %}"
+          {% if active_banking_tab == 'settings' %}aria-current="page"{% endif %}
+        >
+          Banking Settings
+        </a>
+      </nav>
+    </section>
+
+    <section class="settings-intro">
+      <header>
+        <h1>Lifesim — Banking Settings</h1>
+        <p>
+          Configure {{ bank_settings.bank_name }} by defining fees, savings interest, and how much money sits in each
+          account.
+        </p>
+      </header>
+      <p class="settings-note">
+        All changes are logged for auditing, and the ledger will reflect new balances immediately.
+      </p>
+    </section>
+
+    {% if feedback %}
+      <div class="settings-alert settings-alert--{{ feedback.type }}" role="status">
+        {{ feedback.message }}
+      </div>
+    {% endif %}
+
+    <section class="settings-panel" aria-label="Bank configuration">
+      <header>
+        <h2>Bank configuration</h2>
+        <p>Update the system name, the standard service fee, and savings interest.</p>
+      </header>
+      <form method="post" class="settings-form">
+        <input type="hidden" name="intent" value="update-settings" />
+        <div class="settings-grid">
+          <label>
+            <span>Bank name</span>
+            <input
+              type="text"
+              name="bank_name"
+              value="{{ bank_settings.bank_name }}"
+              required
+              maxlength="120"
+            />
+          </label>
+          <label>
+            <span>Monthly service fee</span>
+            <div class="settings-input">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                name="standard_fee"
+                value="{{ '%.2f'|format(bank_settings.standard_fee) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </label>
+          <label>
+            <span>Savings interest rate (APY)</span>
+            <div class="settings-input">
+              <input
+                type="number"
+                name="savings_interest_rate"
+                value="{{ '%.3f'|format(bank_settings.savings_interest_rate) }}"
+                min="0"
+                step="0.001"
+                required
+              />
+              <span class="suffix">%</span>
+            </div>
+          </label>
+        </div>
+        <button type="submit" class="settings-submit">Save bank settings</button>
+      </form>
+    </section>
+
+    <section class="settings-panel" aria-label="Account balances">
+      <header>
+        <h2>Manage account balances</h2>
+        <p>Set a new balance or reset an account to zero. Checking and savings accept manual overrides.</p>
+      </header>
+      <div class="settings-account-grid">
+        {% for account in accounts %}
+          <article class="settings-account-card">
+            <header>
+              <h3>{{ account.name }}</h3>
+              <p class="settings-account-type">{{ account.type }}</p>
+            </header>
+            <p class="settings-account-balance">Current balance: <strong>{{ account.display_balance }}</strong></p>
+            <form method="post" class="settings-account-form">
+              <input type="hidden" name="account_id" value="{{ account.id }}" />
+              <label for="balance-{{ account.id }}">Set balance</label>
+              <input
+                id="balance-{{ account.id }}"
+                type="number"
+                name="amount"
+                value="{{ '%.2f'|format(account.balance) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+              <div class="settings-account-actions">
+                <button type="submit" name="intent" value="update-balance" class="settings-account-save">
+                  Save new amount
+                </button>
+                <button type="submit" name="intent" value="reset-balance" class="settings-account-reset">
+                  Reset to $0
+                </button>
+              </div>
+            </form>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+{% endblock %}

@@ -9,134 +9,154 @@
 {% endblock %}
 
 {% block content %}
-  <section class="banking-subnav" aria-label="Banking navigation">
-    <nav class="banking-tabs">
-      <a
-        href="{{ url_for('banking.home') }}"
-        class="banking-tab{% if active_banking_tab == 'home' %} is-active{% endif %}"
-        {% if active_banking_tab == 'home' %}aria-current="page"{% endif %}
-      >
-        Banking Home
-      </a>
-      <a
-        href="{{ url_for('banking.transfer') }}"
-        class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
-        {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
-      >
-        Banking Transfer
-      </a>
-    </nav>
-  </section>
+  <div class="banking-shell">
+    <section class="banking-subnav" aria-label="Banking navigation">
+      <nav class="banking-tabs">
+        <a
+          href="{{ url_for('banking.home') }}"
+          class="banking-tab{% if active_banking_tab == 'home' %} is-active{% endif %}"
+          {% if active_banking_tab == 'home' %}aria-current="page"{% endif %}
+        >
+          Banking Home
+        </a>
+        <a
+          href="{{ url_for('banking.transfer') }}"
+          class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
+          {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
+        >
+          Banking Transfer
+        </a>
+        <a
+          href="{{ url_for('banking.settings') }}"
+          class="banking-tab{% if active_banking_tab == 'settings' %} is-active{% endif %}"
+          {% if active_banking_tab == 'settings' %}aria-current="page"{% endif %}
+        >
+          Banking Settings
+        </a>
+      </nav>
+    </section>
 
-  <section class="banking-overview">
-    <header class="banking-overview__header">
-      <h1>Lifesim — Banking Transfer</h1>
-      <p>Move money between cash, checking, and savings while every transaction is automatically described.</p>
-    </header>
-    <div class="transfer-panel" aria-label="Manage cash movement">
-      <article class="transfer-card">
-        <h2>Move cash into accounts</h2>
-        <p>Shift money from your wallet into checking or savings and document the transfer.</p>
-        <form id="form-hand-to-account" class="transfer-form">
-          <p class="transfer-card__note">
-            Transactions from this tool are stored as <strong>Cash Allocation</strong> with the destination documented for you.
-          </p>
-          <div class="form-row">
-            <label for="hand-transfer-amount">Amount</label>
-            <input
-              id="hand-transfer-amount"
-              name="amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              required
-            />
-          </div>
-          <div class="form-row">
-            <label for="hand-transfer-destination">Destination</label>
-            <select id="hand-transfer-destination" name="destination" required>
-              <option value="" disabled selected>Select an account</option>
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
-            </select>
-          </div>
-          <p class="transfer-card__summary" data-deposit-summary>
-            Cash Allocation — Wallet deposit into the selected account.
-          </p>
-          <button type="submit" class="transfer-button">Deposit into account</button>
-          <p class="form-feedback" data-feedback hidden></p>
-        </form>
-      </article>
-      <article class="transfer-card">
-        <h2>Replenish cash on hand</h2>
-        <p>Move funds out of checking or savings to give yourself spending flexibility.</p>
-        <form id="form-account-to-hand" class="transfer-form">
-          <p class="transfer-card__note">
-            This flow records a <strong>Cash Withdrawal</strong> and notes which account supplied the cash.
-          </p>
-          <div class="form-row">
-            <label for="account-withdraw-amount">Amount</label>
-            <input
-              id="account-withdraw-amount"
-              name="amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              required
-            />
-          </div>
-          <div class="form-row">
-            <label for="account-withdraw-source">Source</label>
-            <select id="account-withdraw-source" name="source" required>
-              <option value="" disabled selected>Select an account</option>
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
-            </select>
-          </div>
-          <p class="transfer-card__summary" data-withdraw-summary>
-            Cash Withdrawal — Funds moved from the selected account to cash on hand.
-          </p>
-          <button type="submit" class="transfer-button">Move funds to cash</button>
-          <p class="form-feedback" data-feedback hidden></p>
-        </form>
-      </article>
-    </div>
-  </section>
+    <section class="banking-overview">
+      <header class="banking-overview__header">
+        <h1>Lifesim — Banking Transfer</h1>
+        <p>
+          Move money through {{ bank_settings.bank_name }} while every transaction is written to the ledger and the
+          balances refresh in real time.
+        </p>
+      </header>
+      <div class="transfer-panel" aria-label="Manage cash movement">
+        <article class="transfer-card">
+          <h2>Move cash into accounts</h2>
+          <p>Shift money from your wallet into checking or savings. The ledger records the destination.</p>
+          <form
+            id="form-hand-to-account"
+            class="transfer-form"
+            data-endpoint="{{ url_for('banking.api_deposit') }}"
+          >
+            <p class="transfer-card__note">
+              Transactions from this tool are stored as <strong>Cash Allocation</strong> with the account noted for you.
+            </p>
+            <div class="form-row">
+              <label for="hand-transfer-amount">Amount</label>
+              <input
+                id="hand-transfer-amount"
+                name="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+              />
+            </div>
+            <div class="form-row">
+              <label for="hand-transfer-destination">Destination</label>
+              <select id="hand-transfer-destination" name="destination" required>
+                <option value="" disabled selected>Select an account</option>
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+            <p class="transfer-card__summary" data-deposit-summary>
+              Cash Allocation — Wallet deposit into the selected account.
+            </p>
+            <button type="submit" class="transfer-button">Deposit into account</button>
+            <p class="form-feedback" data-feedback hidden></p>
+          </form>
+        </article>
+        <article class="transfer-card">
+          <h2>Replenish cash on hand</h2>
+          <p>Move funds out of checking or savings to keep spending money within reach.</p>
+          <form
+            id="form-account-to-hand"
+            class="transfer-form"
+            data-endpoint="{{ url_for('banking.api_withdraw') }}"
+          >
+            <p class="transfer-card__note">
+              This flow records a <strong>Cash Withdrawal</strong> and notes which account supplied the cash.
+            </p>
+            <div class="form-row">
+              <label for="account-withdraw-amount">Amount</label>
+              <input
+                id="account-withdraw-amount"
+                name="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+              />
+            </div>
+            <div class="form-row">
+              <label for="account-withdraw-source">Source</label>
+              <select id="account-withdraw-source" name="source" required>
+                <option value="" disabled selected>Select an account</option>
+                <option value="checking">Checking</option>
+                <option value="savings">Savings</option>
+              </select>
+            </div>
+            <p class="transfer-card__summary" data-withdraw-summary>
+              Cash Withdrawal — Funds moved from the selected account to cash on hand.
+            </p>
+            <button type="submit" class="transfer-button">Move funds to cash</button>
+            <p class="form-feedback" data-feedback hidden></p>
+          </form>
+        </article>
+      </div>
+    </section>
 
-  <section class="transaction-ledger" aria-label="Account transfer history">
-    <header>
-      <h2>Transfer log</h2>
-      <p>Every deposit or withdrawal with its story, so you always know where the money went.</p>
-    </header>
-    <div class="transaction-ledger__table">
-      <table class="transaction-table">
-        <thead>
-          <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Description</th>
-            <th scope="col">Account</th>
-            <th scope="col" class="transaction-table__amount">Amount</th>
-          </tr>
-        </thead>
-        <tbody data-ledger-body>
-          {% for transaction in banking_state.transactions %}
-            {% set sign = '+' if transaction.direction == 'credit' else '−' %}
-            <tr data-direction="{{ transaction.direction }}">
-              <td>{{ transaction.name }}</td>
-              <td>{{ transaction.description }}</td>
-              <td>{{ banking_state.account_labels[transaction.account] }}</td>
-              <td class="transaction-amount {{ transaction.direction }}">
-                {{ sign }}${{ '%.2f'|format(transaction.amount) }}
-              </td>
+    <section class="transaction-ledger" aria-label="Account transfer history">
+      <header>
+        <h2>Transfer log</h2>
+        <p>Every deposit or withdrawal is tracked with the account, direction, and amount.</p>
+      </header>
+      <div class="transaction-ledger__table">
+        <table class="transaction-table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Description</th>
+              <th scope="col">Account</th>
+              <th scope="col" class="transaction-table__amount">Amount</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="ledger-empty" data-ledger-empty {% if banking_state.transactions %}hidden{% endif %}>
-        No transfers recorded yet. Move funds to populate your history.
-      </p>
-    </div>
-  </section>
+          </thead>
+          <tbody data-ledger-body>
+            {% for transaction in banking_state.transactions %}
+              {% set sign = '+' if transaction.direction == 'credit' else '−' %}
+              <tr data-direction="{{ transaction.direction }}">
+                <td>{{ transaction.name }}</td>
+                <td>{{ transaction.description }}</td>
+                <td>{{ banking_state.account_labels[transaction.account] }}</td>
+                <td class="transaction-amount {{ transaction.direction }}">
+                  {{ sign }}${{ '%.2f'|format(transaction.amount) }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="ledger-empty" data-ledger-empty {% if banking_state.transactions %}hidden{% endif %}>
+          No transfers recorded yet. Move funds to populate your history.
+        </p>
+      </div>
+    </section>
+  </div>
 
   <script id="banking-data" type="application/json">{{ banking_state | tojson }}</script>
 {% endblock %}

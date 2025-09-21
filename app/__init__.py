@@ -17,6 +17,10 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     log_manager.init_app(app)
 
     with app.app_context():
+        # Import models to ensure they are registered before table creation.
+        from . import models as core_models  # noqa: F401
+        from .banking import models as banking_models  # noqa: F401
+
         db.create_all()
 
     from .index import bp as index_bp
