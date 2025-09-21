@@ -1,0 +1,37 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('logging.static', filename='styles/logs.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('logging.static', filename='js/logs.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <section class="log-summary">
+    <header>
+      <h1>Lifesim — Logs</h1>
+      <p>Review, filter, and export runtime events for every subsystem.</p>
+    </header>
+    <div class="log-stats">
+      <article class="log-stat" data-level="info">
+        <h2>Info</h2>
+        <p id="log-info-count">0</p>
+      </article>
+      <article class="log-stat" data-level="warn">
+        <h2>Warnings</h2>
+        <p id="log-warn-count">0</p>
+      </article>
+      <article class="log-stat" data-level="error">
+        <h2>Errors</h2>
+        <p id="log-error-count">0</p>
+      </article>
+    </div>
+    <button type="button" id="download-logs">Copy latest payload</button>
+  </section>
+
+  <section class="log-detail" aria-label="Detailed log feed">
+    <div id="log-detail-feed" class="log-detail__feed"></div>
+  </section>
+{% endblock %}

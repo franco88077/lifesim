@@ -1,0 +1,103 @@
+.banking-overview {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(8, 47, 73, 0.8));
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.banking-overview__header h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
+}
+
+.account-grid {
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.account-card {
+  background: rgba(30, 64, 175, 0.35);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid rgba(191, 219, 254, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.account-card:hover,
+.account-card:focus {
+  transform: translateY(-4px);
+}
+
+.account-card__type {
+  color: rgba(226, 232, 240, 0.75);
+  margin: 0;
+}
+
+.account-card__balance {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  margin: 0;
+}
+
+.goal-tracker {
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  border: 1px solid rgba(15, 118, 110, 0.35);
+}
+
+.goal-tracker header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.goal-tracker h2 {
+  margin: 0;
+}
+
+.goal-toggle {
+  background: transparent;
+  border: 1px solid rgba(45, 212, 191, 0.6);
+  color: rgba(209, 250, 229, 0.9);
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+}
+
+.goal-grid {
+  margin-top: 2rem;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.goal {
+  background: rgba(22, 78, 99, 0.5);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.goal__progress {
+  height: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.goal__progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22d3ee, #34d399);
+  width: 0;
+}
+
+.goal.projected .goal__progress-bar {
+  background: linear-gradient(90deg, #fde68a, #f97316);
+}

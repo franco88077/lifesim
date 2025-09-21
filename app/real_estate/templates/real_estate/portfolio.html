@@ -1,0 +1,65 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('real_estate.static', filename='styles/real_estate.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('real_estate.static', filename='js/real_estate.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <section class="portfolio">
+    <header class="portfolio__header">
+      <h1>Lifesim — Real Estate</h1>
+      <p>Evaluate owned properties and monitor potential acquisitions with live analytics.</p>
+    </header>
+    <div class="portfolio__grid">
+      {% for property in properties %}
+        <article class="property-card" data-value="{{ property.value }}">
+          <header>
+            <h2>{{ property.name }}</h2>
+            <p class="property-card__status">{{ property.status }}</p>
+          </header>
+          <dl>
+            <div>
+              <dt>Value</dt>
+              <dd>${{ '{:,}'.format(property.value) }}</dd>
+            </div>
+            <div>
+              <dt>Yield</dt>
+              <dd>{{ property.yield }}</dd>
+            </div>
+          </dl>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="prospects" aria-label="Acquisition prospects">
+    <header>
+      <h2>Acquisition radar</h2>
+      <p>Keep tabs on upcoming listings that match your strategy.</p>
+    </header>
+    <table class="prospects__table">
+      <thead>
+        <tr>
+          <th scope="col">Address</th>
+          <th scope="col">Type</th>
+          <th scope="col">Asking price</th>
+          <th scope="col">Fit score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for prospect in prospects %}
+          <tr data-score="{{ prospect.score }}">
+            <td data-label="Address">{{ prospect.address }}</td>
+            <td data-label="Type">{{ prospect.type }}</td>
+            <td data-label="Asking price">${{ '{:,}'.format(prospect.price) }}</td>
+            <td data-label="Fit score">{{ prospect.score }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endblock %}

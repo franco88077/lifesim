@@ -1,0 +1,60 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('shop.static', filename='styles/shop.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('shop.static', filename='js/shop.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <section class="shop-hero">
+    <header>
+      <h1>Lifesim — Shop</h1>
+      <p>Curate essentials and luxuries to keep your lifestyle energized.</p>
+    </header>
+    <div class="shop-filters">
+      <button type="button" data-filter="all" class="filter-button active">All</button>
+      <button type="button" data-filter="essential" class="filter-button">Essentials</button>
+      <button type="button" data-filter="luxury" class="filter-button">Luxuries</button>
+    </div>
+  </section>
+
+  <section class="shop-inventory" aria-label="Shop inventory">
+    <div class="shop-collection" data-category="essential">
+      <h2>Essentials</h2>
+      <div class="item-grid">
+        {% for item in essentials %}
+          <article class="shop-item" data-type="essential" data-cost="{{ item.cost }}">
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.category }}</p>
+            <p class="shop-item__price">${{ item.cost }}</p>
+            <button type="button" class="add-to-cart">Reserve</button>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="shop-collection" data-category="luxury">
+      <h2>Luxuries</h2>
+      <div class="item-grid">
+        {% for item in luxuries %}
+          <article class="shop-item" data-type="luxury" data-cost="{{ item.cost }}">
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.category }}</p>
+            <p class="shop-item__price">${{ item.cost }}</p>
+            <button type="button" class="add-to-cart">Reserve</button>
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="cart" aria-live="polite">
+    <header>
+      <h2>Quick cart</h2>
+      <p>Total: <span id="cart-total">$0</span></p>
+    </header>
+    <ul id="cart-list"></ul>
+  </section>
+{% endblock %}

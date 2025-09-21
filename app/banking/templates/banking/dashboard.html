@@ -1,0 +1,46 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('banking.static', filename='styles/banking.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('banking.static', filename='js/banking.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <section class="banking-overview">
+    <header class="banking-overview__header">
+      <h1>Lifesim — Banking</h1>
+      <p>Manage cash flow, set savings intent, and keep liquidity aligned with your goals.</p>
+    </header>
+    <div class="account-grid">
+      {% for account in accounts %}
+        <article class="account-card" data-balance="{{ account.balance }}">
+          <h2>{{ account.name }}</h2>
+          <p class="account-card__type">{{ account.type }}</p>
+          <p class="account-card__balance">${{ '%.2f'|format(account.balance) }}</p>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="goal-tracker" aria-label="Financial goals">
+    <header>
+      <h2>Goals and contributions</h2>
+      <button type="button" class="goal-toggle">Toggle projections</button>
+    </header>
+    <div class="goal-grid">
+      {% for goal in goals %}
+        <article class="goal" data-target="{{ goal.target }}" data-current="{{ goal.current }}">
+          <h3>{{ goal.goal }}</h3>
+          <p>Target: ${{ goal.target }}</p>
+          <p>Current: ${{ goal.current }}</p>
+          <div class="goal__progress" role="progressbar" aria-valuemin="0" aria-valuemax="{{ goal.target }}" aria-valuenow="{{ goal.current }}">
+            <div class="goal__progress-bar"></div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

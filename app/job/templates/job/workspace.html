@@ -1,0 +1,63 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('job.static', filename='styles/job.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('job.static', filename='js/job.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <section class="job-hero">
+    <header>
+      <h1>Lifesim — Job</h1>
+      <p>Structure your workweek, track momentum, and celebrate progress.</p>
+    </header>
+    <div class="hero-insight">
+      <p>Next milestone</p>
+      <strong>{{ milestones[0].name }}</strong>
+      <span>{{ milestones[0].deadline }}</span>
+      <p>Weekly total</p>
+      <span id="weekly-total" class="weekly-total" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="schedule" aria-label="Shift schedule">
+    <header>
+      <h2>Shifts</h2>
+      <button type="button" class="hours-toggle">Expand hours</button>
+    </header>
+    <table class="schedule__table">
+      <thead>
+        <tr>
+          <th scope="col">Day</th>
+          <th scope="col">Hours</th>
+          <th scope="col">Activity</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for shift in shifts %}
+          <tr data-hours="{{ shift.hours }}">
+            <td data-label="Day">{{ shift.day }}</td>
+            <td data-label="Hours">{{ shift.hours }}</td>
+            <td data-label="Activity">{{ shift.activity }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="milestones" aria-label="Career milestones">
+    <h2>Milestones</h2>
+    <div class="milestones__grid">
+      {% for milestone in milestones %}
+        <article class="milestone" data-status="{{ milestone.status }}">
+          <h3>{{ milestone.name }}</h3>
+          <p>Deadline: {{ milestone.deadline }}</p>
+          <p>Status: {{ milestone.status }}</p>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}
