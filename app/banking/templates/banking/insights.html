@@ -59,12 +59,12 @@
               </header>
               <div class="insight-panel__grid">
                 {% for insight in insight_accounts %}
-                  <article class="insight-summary">
-                    <header class="insight-summary__header">
+                  <article class="summary-card">
+                    <header class="summary-card__header">
                       <h3>{{ insight.name }}</h3>
                       <span class="insight-status insight-status--open">Open</span>
                     </header>
-                    <dl class="insight-summary__details">
+                    <dl class="summary-card__details">
                       <div>
                         <dt>Account opened</dt>
                         <dd>{{ insight.opened }}</dd>
@@ -96,7 +96,7 @@
                   Understand how {{ account_insights.savings.apy_rate }} grows your savings and when the next payout is expected.
                 </p>
               </header>
-              <div class="insight-apy">
+              <div class="insight-apy summary-card">
                 <p class="insight-apy__headline">
                   Maintain the current balance to earn <strong>{{ account_insights.savings.projected_interest }}</strong>
                   on {{ account_insights.savings.next_anchor }}.
@@ -116,7 +116,7 @@
               </header>
               <div class="insight-due-grid">
                 {% for due in insight_due_items %}
-                  <article class="insight-due-card">
+                  <article class="insight-due-card summary-card">
                     <header>
                       <h3>{{ due.name }}</h3>
                       <span class="insight-due-label">Amount Due</span>

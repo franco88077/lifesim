@@ -58,7 +58,7 @@
         <p>Check balances before you submit a transfer to keep cash, checking, and savings aligned.</p>
         <div class="account-grid">
           {% for account in accounts %}
-            <article class="account-card" data-account-card data-account="{{ account.id }}">
+            <article class="account-card summary-card" data-account-card data-account="{{ account.id }}">
               <header>
                 {% if account.type %}
                   <p class="account-card__type">{{ account.type }}</p>

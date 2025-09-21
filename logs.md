@@ -1,4 +1,9 @@
 # Lifesim change log
+## 2025-10-01
+- **What**: Unified the styling of banking insight, account, and settings cards and brought the settings overview inline with other banking pages.
+- **How**: Created a reusable `summary-card` pattern with configurable CSS variables, applied it to insights, due summaries, account balances, and closure controls, and swapped the standalone settings intro for the shared banking overview header.
+- **Why**: Disparate card treatments and an isolated settings banner looked inconsistent and made it harder to reuse the layout in new contexts.
+- **Purpose**: Keeps the banking UI cohesive, simplifies future reuse of highlighted cards, and ensures the settings landing matches the presentation established across the module.
 ## 2025-09-30
 - **What**: Prevented the bulk account closure control from appearing when only one bank account is open.
 - **How**: Counted open banking accounts in the routes helper, passed a new template flag, and wrapped the “Close Bank Accounts” card in a conditional.
