@@ -135,7 +135,7 @@
                     {% for due in account_due_cards %}
                       <article class="account-due__card">
                         <header>
-                          <h5>{{ due.name }}</h5>
+                          <h5 class="account-due__title">{{ due.name }}</h5>
                           <span class="account-due__label">Amount Due</span>
                         </header>
                         <p class="account-due__amount">{{ due.amount }}</p>

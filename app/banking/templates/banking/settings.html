@@ -338,15 +338,31 @@
               <form method="post" class="settings-account-form">
                 <input type="hidden" name="account_id" value="{{ account.id }}" />
                 <label for="balance-{{ account.id }}">Set balance</label>
-                <input
-                  id="balance-{{ account.id }}"
-                  type="number"
-                  name="amount"
-                  value="{{ '%.2f'|format(account.balance) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
+                {% set show_currency_prefix = account.id in ['hand', 'checking', 'savings'] %}
+                {% if show_currency_prefix %}
+                  <div class="settings-account-input">
+                    <span class="settings-account-input__prefix" aria-hidden="true">$</span>
+                    <input
+                      id="balance-{{ account.id }}"
+                      type="number"
+                      name="amount"
+                      value="{{ '%.2f'|format(account.balance) }}"
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                {% else %}
+                  <input
+                    id="balance-{{ account.id }}"
+                    type="number"
+                    name="amount"
+                    value="{{ '%.2f'|format(account.balance) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                {% endif %}
                 <div class="settings-account-actions">
                   <button type="submit" name="intent" value="update-balance" class="settings-account-save">
                     Save new amount
