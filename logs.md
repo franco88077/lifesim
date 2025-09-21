@@ -1,5 +1,16 @@
 # Lifesim change log
 
+## 2025-09-22
+- **What**: Rebuilt the banking home into a two-column Account Activity view, introduced a dedicated insights
+  page, refreshed the transfer center, and renamed Money on Hand to Cash across the banking module.
+- **How**: Updated the banking blueprint to serve recent transactions, added an insights route and template,
+  revised the home and transfer templates with new layouts, adjusted styles and scripts for the redesigned
+  experience, and seeded existing accounts with the new Cash naming.
+- **Why**: The banking area needed clearer separation between balance monitoring, policy guidance, and transfer
+  workflows while aligning terminology with the updated product language.
+- **Purpose**: Gives players an at-a-glance look at activity, moves insights off the home page, simplifies
+  transfers, and keeps terminology consistent throughout the banking system.
+
 ## 2025-09-21
 - **What**: Updated the logging blueprint to expose its static assets and verified the logs console
   loads correctly.

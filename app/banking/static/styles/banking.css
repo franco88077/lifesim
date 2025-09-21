@@ -6,6 +6,10 @@
   padding-bottom: clamp(2rem, 5vw, 3rem);
 }
 
+#toast-container {
+  display: none !important;
+}
+
 .banking-subnav {
   display: flex;
   justify-content: center;
@@ -54,7 +58,6 @@
 }
 
 .banking-overview,
-.transaction-ledger,
 .settings-panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -74,6 +77,113 @@
   color: var(--muted);
   max-width: 44rem;
   line-height: 1.55;
+}
+
+.account-activity {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.account-activity__header h2 {
+  margin: 0 0 0.5rem;
+}
+
+.account-activity__header p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 40rem;
+  line-height: 1.55;
+}
+
+.account-activity__grid {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2rem);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.account-activity__transactions,
+.account-activity__balances {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 1.1rem;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.account-activity__transactions h3,
+.account-activity__balances h3 {
+  margin: 0;
+}
+
+.account-activity__description {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.transaction-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: clamp(0.85rem, 1.8vw, 1.2rem);
+}
+
+.transaction-list__item {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  padding: clamp(1rem, 2.5vw, 1.4rem);
+  display: grid;
+  gap: 0.6rem;
+}
+
+.transaction-list__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.transaction-list__name {
+  font-weight: 600;
+}
+
+.transaction-list__amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.transaction-list__item[data-direction="credit"] .transaction-list__amount {
+  color: var(--success);
+}
+
+.transaction-list__item[data-direction="debit"] .transaction-list__amount {
+  color: var(--error);
+}
+
+.transaction-list__meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.transaction-list__description {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.transaction-list__empty {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (max-width: 980px) {
+  .account-activity__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .account-grid {
@@ -117,6 +227,22 @@
   font-size: 0.9rem;
 }
 
+.transfer-balances {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.transfer-balances h2 {
+  margin: 0;
+}
+
+.transfer-balances p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 36rem;
+  line-height: 1.55;
+}
+
 .transfer-panel {
   display: grid;
   gap: clamp(1.5rem, 3vw, 2rem);
@@ -141,24 +267,6 @@
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
-}
-
-.transfer-card__note {
-  border: 1px solid var(--border);
-  border-radius: 0.85rem;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.transfer-card__summary {
-  margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 0.85rem;
-  padding: 0.75rem 1rem;
-  font-weight: 600;
-  color: var(--text);
-  background: var(--surface);
 }
 
 .transfer-form {
@@ -316,65 +424,6 @@
   padding-top: 1rem;
   color: var(--muted);
   line-height: 1.55;
-}
-
-.transaction-ledger header h2 {
-  margin: 0 0 0.5rem;
-}
-
-.transaction-ledger header p {
-  margin: 0;
-  color: var(--muted);
-  max-width: 36rem;
-  line-height: 1.55;
-}
-
-.transaction-ledger__table {
-  overflow-x: auto;
-}
-
-.transaction-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 520px;
-}
-
-.transaction-table th,
-.transaction-table td {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.transaction-table th {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-}
-
-.transaction-table__amount,
-.transaction-amount {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.transaction-amount.credit {
-  color: var(--success);
-}
-
-.transaction-amount.debit {
-  color: var(--error);
-}
-
-.transaction-table tbody tr:nth-child(even) {
-  background: var(--surface-alt);
-}
-
-.ledger-empty {
-  margin: 0;
-  color: var(--muted);
-  font-style: italic;
 }
 
 .settings-intro {

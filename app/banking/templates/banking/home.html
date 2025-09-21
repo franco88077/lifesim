@@ -16,6 +16,13 @@
           Banking Home
         </a>
         <a
+          href="{{ url_for('banking.insights') }}"
+          class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
+          {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
+        >
+          Account Insights
+        </a>
+        <a
           href="{{ url_for('banking.transfer') }}"
           class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
           {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
@@ -40,50 +47,58 @@
           decision is recorded and visible.
         </p>
       </header>
-      <div class="account-grid">
-        {% for account in accounts %}
-          <article class="account-card" data-account-card data-account="{{ account.id }}">
-            <header>
-              <p class="account-card__type">{{ account.type }}</p>
-              <h2>{{ account.name }}</h2>
-            </header>
-            <p class="account-card__balance">
-              <span data-balance-value>{{ account.display_balance }}</span>
+      <section class="account-activity" aria-label="Account activity">
+        <header class="account-activity__header">
+          <h2>Account Activity</h2>
+          <p>Review your latest transactions alongside current balances for cash, checking, and savings.</p>
+        </header>
+        <div class="account-activity__grid">
+          <div class="account-activity__transactions" aria-label="Recent transactions">
+            <h3>Recent transactions</h3>
+            <p class="account-activity__description">
+              The ledger captures deposits and withdrawals the moment they are submitted.
             </p>
-            <p class="account-card__hint">Balances update instantly after each transfer.</p>
-          </article>
-        {% endfor %}
-      </div>
-    </section>
-
-    <section class="banking-insights" aria-label="Banking information">
-      <header>
-        <h2>Account insights and fees</h2>
-        <p>
-          Use the live ledger to act before fees or penalties hit and to capture the interest your savings earns.
-        </p>
-      </header>
-      <div class="insight-grid">
-        {% for insight in account_insights %}
-          <article class="insight-card">
-            <h3>{{ insight.account }}</h3>
-            <ul class="insight-list">
-              {% for detail in insight.details %}
-                <li class="insight-item">
-                  <span class="insight-label">{{ detail.label }}</span>
-                  <span class="insight-value">{{ detail.value }}</span>
-                </li>
+            {% if recent_transactions %}
+              <ul class="transaction-list">
+                {% for transaction in recent_transactions %}
+                  <li class="transaction-list__item" data-direction="{{ transaction.direction }}">
+                    <div class="transaction-list__row">
+                      <span class="transaction-list__name">{{ transaction.name }}</span>
+                      <span class="transaction-list__amount">{{ transaction.amount_display }}</span>
+                    </div>
+                    <p class="transaction-list__meta">{{ transaction.account_name }} · {{ transaction.timestamp }}</p>
+                    <p class="transaction-list__description">{{ transaction.description }}</p>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="transaction-list__empty">
+                No transactions recorded yet. Transfers will appear here automatically.
+              </p>
+            {% endif %}
+          </div>
+          <div class="account-activity__balances" aria-label="Account balances">
+            <h3>Account balances</h3>
+            <p class="account-activity__description">
+              Balances refresh instantly after each transfer so you always know what is available.
+            </p>
+            <div class="account-grid">
+              {% for account in accounts %}
+                <article class="account-card" data-account-card data-account="{{ account.id }}">
+                  <header>
+                    <p class="account-card__type">{{ account.type }}</p>
+                    <h2>{{ account.name }}</h2>
+                  </header>
+                  <p class="account-card__balance">
+                    <span data-balance-value>{{ account.display_balance }}</span>
+                  </p>
+                  <p class="account-card__hint">Balances update instantly after each transfer.</p>
+                </article>
               {% endfor %}
-            </ul>
-          </article>
-        {% endfor %}
-      </div>
-      <footer class="insight-footer">
-        <p>
-          Monitor balances weekly and rebalance through the transfer hub ahead of billing cycles. Captured
-          transactions double as an audit trail for every move.
-        </p>
-      </footer>
+            </div>
+          </div>
+        </div>
+      </section>
     </section>
   </div>
 {% endblock %}

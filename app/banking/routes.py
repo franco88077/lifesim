@@ -16,6 +16,7 @@ from .services import (
     build_banking_state,
     ensure_bank_defaults,
     fetch_accounts,
+    fetch_recent_transactions,
     find_account,
     format_currency,
     get_bank_settings,
@@ -37,6 +38,24 @@ def _serialize_account(account: BankAccount) -> dict[str, object]:
     }
 
 
+def _serialize_transaction(transaction: BankTransaction) -> dict[str, object]:
+    """Prepare transaction details for account activity listings."""
+
+    account_name = transaction.account.name if transaction.account else "Unknown account"
+    sign = "+" if transaction.direction == "credit" else "−"
+    timestamp = transaction.created_at.strftime("%b %d, %Y")
+
+    return {
+        "id": transaction.id,
+        "name": transaction.name,
+        "description": transaction.description,
+        "account_name": account_name,
+        "direction": transaction.direction,
+        "amount_display": f"{sign}{format_currency(transaction.amount)}",
+        "timestamp": timestamp,
+    }
+
+
 def _log_cash_health(accounts: Iterable[BankAccount]) -> None:
     """Emit warnings if liquid cash drops below the healthy threshold."""
 
@@ -47,12 +66,12 @@ def _log_cash_health(accounts: Iterable[BankAccount]) -> None:
                 action="cash-check",
                 level="warn",
                 result="warn",
-                title="Cash on hand trending low",
+                title="Cash balance trending low",
                 user_summary=(
-                    "Cash on hand fell below $150. Consider moving funds from checking or savings."
+                    "Cash balance fell below $150. Consider moving funds from checking or savings."
                 ),
                 technical_details=(
-                    "banking.cash_monitor detected low liquidity in physical cash reserves."
+                    "banking.cash_monitor detected low liquidity in cash reserves."
                 ),
             )
             break
@@ -88,20 +107,50 @@ def home():
         result="success",
         title="Banking home opened",
         user_summary="Banking overview displayed for the player.",
-        technical_details="banking.home rendered account balances and fee breakdowns.",
+        technical_details="banking.home rendered account balances and recent transactions.",
     )
 
     serialized_accounts = [_serialize_account(account) for account in accounts]
-    insights = build_account_insights(settings)
+    transactions = fetch_recent_transactions(limit=12)
+    serialized_transactions = [_serialize_transaction(tx) for tx in transactions]
 
     return render_template(
         "banking/home.html",
         title="Lifesim — Banking Home",
         accounts=serialized_accounts,
-        account_insights=insights,
+        recent_transactions=serialized_transactions,
         bank_settings=settings,
         active_nav="banking",
         active_banking_tab="home",
+    )
+
+
+@bp.route("/insights")
+def insights():
+    """Display account insight and fee information on a dedicated page."""
+
+    ensure_bank_defaults()
+    settings = get_bank_settings()
+
+    log_manager.record(
+        component="Banking",
+        action="view-insights",
+        level="info",
+        result="success",
+        title="Banking insights opened",
+        user_summary="Account insight and fee guidance displayed for the player.",
+        technical_details="banking.insights rendered the insight cards and policy notes.",
+    )
+
+    insights = build_account_insights(settings)
+
+    return render_template(
+        "banking/insights.html",
+        title="Lifesim — Banking Insights",
+        account_insights=insights,
+        bank_settings=settings,
+        active_nav="banking",
+        active_banking_tab="insights",
     )
 
 
@@ -122,7 +171,7 @@ def transfer():
         result="success",
         title="Banking transfer center opened",
         user_summary="Transfer interface loaded for cash and account movements.",
-        technical_details="banking.transfer rendered cash movement forms and ledger.",
+        technical_details="banking.transfer rendered cash movement forms and balance overview.",
     )
 
     serialized_accounts = [_serialize_account(account) for account in accounts]
@@ -140,7 +189,7 @@ def transfer():
 
 @bp.post("/api/transfer/deposit")
 def api_deposit():
-    """Move money from cash on hand into a selected account."""
+    """Move money from cash into a selected account."""
 
     ensure_bank_defaults()
     payload = request.get_json(silent=True) or {}
@@ -195,10 +244,10 @@ def api_deposit():
             level="error",
             result="error",
             title="Deposit rejected — cash account missing",
-            user_summary="Cash on hand account is unavailable.",
-            technical_details="banking.api_deposit could not locate the cash on hand account.",
+            user_summary="Cash account is unavailable.",
+            technical_details="banking.api_deposit could not locate the cash account.",
         )
-        return _json_error("Cash on hand balance is unavailable.")
+        return _json_error("Cash balance is unavailable.")
 
     if amount > hand.balance:
         available = format_currency(hand.balance)
@@ -208,10 +257,10 @@ def api_deposit():
             level="warn",
             result="error",
             title="Deposit rejected — insufficient cash",
-            user_summary=f"Only {available} available in cash on hand.",
-            technical_details="banking.api_deposit prevented overdrawing the cash on hand account.",
+            user_summary=f"Only {available} available in cash.",
+            technical_details="banking.api_deposit prevented overdrawing the cash account.",
         )
-        return _json_error(f"Only {available} available in cash on hand.")
+        return _json_error(f"Only {available} available in cash.")
 
     description = f"Wallet deposit into {destination.name}"
 
@@ -264,7 +313,7 @@ def api_deposit():
 
 @bp.post("/api/transfer/withdraw")
 def api_withdraw():
-    """Move money from an account back into cash on hand."""
+    """Move money from an account back into cash."""
 
     ensure_bank_defaults()
     payload = request.get_json(silent=True) or {}
@@ -319,10 +368,10 @@ def api_withdraw():
             level="error",
             result="error",
             title="Withdrawal rejected — cash account missing",
-            user_summary="Cash on hand account is unavailable.",
-            technical_details="banking.api_withdraw could not locate the cash on hand account.",
+            user_summary="Cash account is unavailable.",
+            technical_details="banking.api_withdraw could not locate the cash account.",
         )
-        return _json_error("Cash on hand balance is unavailable.")
+        return _json_error("Cash balance is unavailable.")
 
     if amount > source.balance:
         available = format_currency(source.balance)
@@ -337,7 +386,7 @@ def api_withdraw():
         )
         return _json_error(f"{source.name} only has {available} available.")
 
-    description = f"Funds moved from {source.name} to cash on hand"
+    description = f"Funds moved from {source.name} to cash"
 
     try:
         with db.session.begin():
@@ -376,13 +425,13 @@ def api_withdraw():
         level="info",
         result="success",
         title="Cash withdrawn",
-        user_summary=f"Moved {format_currency(amount)} from {source.name} to cash on hand.",
+        user_summary=f"Moved {format_currency(amount)} from {source.name} to cash.",
         technical_details=(
             "banking.api_withdraw updated account balances and created a debit transaction entry."
         ),
     )
 
-    message = f"Moved {format_currency(amount)} from {source.name} to cash on hand."
+    message = f"Moved {format_currency(amount)} from {source.name} to cash."
     return _json_response({"success": True, "message": message, "state": state})
 
 
