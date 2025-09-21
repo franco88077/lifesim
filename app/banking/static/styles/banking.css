@@ -40,6 +40,94 @@
 .account-card__balance {
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.transfer-panel {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.transfer-card {
+  background: rgba(8, 47, 73, 0.65);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.transfer-card h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.4vw, 1.6rem);
+}
+
+.transfer-card p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.transfer-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.form-row label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.transfer-form input,
+.transfer-form select {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  border-radius: 0.75rem;
+  color: #e2e8f0;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+}
+
+.transfer-form input:focus,
+.transfer-form select:focus {
+  outline: 2px solid rgba(14, 165, 233, 0.7);
+  outline-offset: 2px;
+}
+
+.transfer-button {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(14, 165, 233, 0.8));
+  border: none;
+  color: #f8fafc;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.transfer-button:hover,
+.transfer-button:focus {
+  transform: translateY(-1px);
+}
+
+.form-feedback {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.form-feedback[data-state="error"] {
+  color: #f87171;
+}
+
+.form-feedback[data-state="success"] {
+  color: #34d399;
 }
 
 .goal-tracker {
@@ -47,6 +135,69 @@
   border-radius: 1.75rem;
   padding: clamp(1.5rem, 4vw, 3.5rem);
   border: 1px solid rgba(15, 118, 110, 0.35);
+}
+
+.transaction-ledger {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  display: grid;
+  gap: 1.5rem;
+}
+
+.transaction-ledger header {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.transaction-ledger__table {
+  overflow-x: auto;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.transaction-table th,
+.transaction-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.transaction-table th {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.transaction-table__amount,
+.transaction-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.transaction-amount.credit {
+  color: #34d399;
+}
+
+.transaction-amount.debit {
+  color: #f87171;
+}
+
+.transaction-table tbody tr:nth-child(even) {
+  background: rgba(30, 58, 138, 0.2);
+}
+
+.ledger-empty {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.75);
+  font-style: italic;
 }
 
 .goal-tracker header {
