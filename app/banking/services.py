@@ -387,62 +387,103 @@ def build_account_due_items(
     checking_anchor = compute_next_anchor_date(settings.checking_anchor_day)
     savings_anchor = compute_next_anchor_date(settings.savings_anchor_day)
 
-    checking_due_amount = (
-        quantize_amount(
-            max(settings.checking_minimum_balance - checking_balance, Decimal("0.00"))
-        )
-        if checking_account
-        else quantize_amount(settings.checking_opening_deposit)
+    checking_deficit = quantize_amount(
+        max(settings.checking_minimum_balance - checking_balance, Decimal("0.00"))
     )
-    savings_due_amount = (
-        quantize_amount(
-            max(settings.savings_minimum_balance - savings_balance, Decimal("0.00"))
-        )
-        if savings_account
-        else quantize_amount(settings.savings_opening_deposit)
+    savings_deficit = quantize_amount(
+        max(settings.savings_minimum_balance - savings_balance, Decimal("0.00"))
     )
+
+    checking_fee = quantize_amount(settings.checking_minimum_fee)
+    savings_fee = quantize_amount(settings.savings_minimum_fee)
 
     def format_date(value: date | None) -> str:
         if not value:
             return "—"
         return value.strftime("%B %d, %Y")
 
-    return [
-        {
-            "name": "Checking Account",
-            "amount": format_currency(checking_due_amount),
-            "due_date": (
-                f"Due on {format_date(checking_anchor)}"
-                if checking_account
-                else "Schedule after opening"
-            ),
+    def build_open_account_due(
+        *,
+        name: str,
+        deficit: Decimal,
+        fee: Decimal,
+        anchor: date | None,
+        minimum: Decimal,
+    ) -> dict[str, str]:
+        formatted_anchor = format_date(anchor)
+
+        if deficit > Decimal("0.00"):
+            return {
+                "name": name,
+                "amount": format_currency(fee),
+                "due_date": f"Fee posts on {formatted_anchor}",
+                "tip": (
+                    "Deposit {shortfall} before {anchor} to prevent the {fee} service fee."
+                ).format(
+                    shortfall=format_currency(deficit),
+                    anchor=formatted_anchor,
+                    fee=format_currency(fee),
+                ),
+            }
+
+        return {
+            "name": name,
+            "amount": format_currency(Decimal("0.00")),
+            "due_date": f"Review on {formatted_anchor}",
             "tip": (
-                "Keep the balance at or above the minimum to avoid the service fee."
-                if checking_account
-                else (
+                "Balance meets the {minimum} requirement. Keep it above the threshold to avoid fees."
+            ).format(minimum=format_currency(minimum)),
+        }
+
+    due_items: list[dict[str, str]] = []
+
+    if checking_account:
+        due_items.append(
+            build_open_account_due(
+                name="Checking Account",
+                deficit=checking_deficit,
+                fee=checking_fee,
+                anchor=checking_anchor,
+                minimum=settings.checking_minimum_balance,
+            )
+        )
+    else:
+        due_items.append(
+            {
+                "name": "Checking Account",
+                "amount": format_currency(settings.checking_opening_deposit),
+                "due_date": "Schedule after opening",
+                "tip": (
                     "Open the checking account with at least "
                     f"{format_currency(settings.checking_opening_deposit)} to start tracking reviews."
-                )
-            ),
-        },
-        {
-            "name": "Savings Account",
-            "amount": format_currency(savings_due_amount),
-            "due_date": (
-                f"Due on {format_date(savings_anchor)}"
-                if savings_account
-                else "Schedule after opening"
-            ),
-            "tip": (
-                "Maintain the minimum balance so the maintenance fee never posts."
-                if savings_account
-                else (
+                ),
+            }
+        )
+
+    if savings_account:
+        due_items.append(
+            build_open_account_due(
+                name="Savings Account",
+                deficit=savings_deficit,
+                fee=savings_fee,
+                anchor=savings_anchor,
+                minimum=settings.savings_minimum_balance,
+            )
+        )
+    else:
+        due_items.append(
+            {
+                "name": "Savings Account",
+                "amount": format_currency(settings.savings_opening_deposit),
+                "due_date": "Schedule after opening",
+                "tip": (
                     "Open the savings account with at least "
                     f"{format_currency(settings.savings_opening_deposit)} to begin earning interest."
-                )
-            ),
-        },
-    ]
+                ),
+            }
+        )
+
+    return due_items
 
 
 def build_account_insights(

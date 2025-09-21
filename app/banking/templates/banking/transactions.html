@@ -41,14 +41,14 @@
 
     <section class="banking-overview" aria-label="Banking transactions">
       <header class="banking-overview__header">
-        <h1>Lifesim — Banking Transactions</h1>
+        <h1>{{ bank_settings.bank_name }} — Banking Transactions</h1>
         <p>
           Review every recorded credit and debit for {{ bank_settings.bank_name }}. Cash movements remain manual so the ledger
           focuses on checking and savings accuracy.
         </p>
       </header>
       <div class="account-activity__transactions" aria-label="Transaction ledger">
-        <h3>Transaction history</h3>
+        <h3>Transaction History</h3>
         <p class="account-activity__description">
           Showing
           {% if pagination.total %}
