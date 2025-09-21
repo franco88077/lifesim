@@ -60,7 +60,7 @@
                 Open your first checking or savings account with {{ available_cash }} ready in cash to allocate.
               </p>
             {% else %}
-              <h2>{{ bank_settings.bank_name }} account options</h2>
+              <h2>{{ bank_settings.bank_name }} Account Options</h2>
               <p>
                 Your {{ missing_phrase }} account is still closed. Move cash into the bank to unlock more tools.
               </p>
@@ -82,7 +82,7 @@
         </header>
         <div class="account-activity__grid">
           <div class="account-activity__transactions" aria-label="Recent transactions">
-            <h3>Recent transactions</h3>
+            <h3>Recent Transactions</h3>
             <p class="account-activity__description">
               The ledger captures deposits and withdrawals the moment they are submitted.
             </p>
@@ -116,7 +116,7 @@
             {% endif %}
           </div>
           <div class="account-activity__balances" aria-label="Account balances">
-            <h3>Account balances</h3>
+            <h3>Account Balances</h3>
             <p class="account-activity__description">Track the latest totals for each account.</p>
             {% if not has_open_accounts %}
               <p class="account-activity__empty">
@@ -149,6 +149,7 @@
                     </header>
                     <p class="account-due__amount">{{ due.amount }}</p>
                     <p class="account-due__note">{{ due.due_date }}</p>
+                    <p class="account-due__tip">{{ due.tip }}</p>
                   </article>
                 {% endfor %}
               </div>
@@ -161,7 +162,7 @@
     <div class="modal" id="account-opening-modal" role="dialog" aria-modal="true" aria-labelledby="account-opening-title" hidden>
       <div class="modal__dialog">
         <header class="modal__header">
-          <h2 id="account-opening-title">Open a banking account</h2>
+          <h2 id="account-opening-title">Open a Banking Account</h2>
           <button type="button" class="modal__close" data-close-modal aria-label="Close">×</button>
         </header>
         <form id="account-opening-form" class="modal__form">
@@ -169,7 +170,7 @@
             Choose which accounts to open and decide how much to deposit from cash. You currently have {{ available_cash }} on hand.
           </p>
           <fieldset class="modal__fieldset">
-            <legend>Select account types</legend>
+            <legend>Select Account Types</legend>
             <label class="modal__option">
               <input type="checkbox" value="checking" data-account-option {% if 'checking' not in missing_accounts %}disabled{% endif %} />
               <span class="modal__option-label">
