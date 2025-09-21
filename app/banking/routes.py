@@ -414,7 +414,7 @@ def api_open_accounts():
     if not selections:
         return _json_error("Choose an account to open and include a starting deposit.")
 
-    total_deposit = sum(amount for _, amount in selections)
+    total_deposit = sum(amount for _, amount, _ in selections)
     if total_deposit > cash_account.balance:
         available = format_currency(cash_account.balance)
         return _json_error(

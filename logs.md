@@ -1,4 +1,13 @@
 # Lifesim change log
+## 2025-09-28
+- **What**: Fixed the account opening API to total deposits correctly and added test coverage.
+- **How**: Updated the sum operation in `banking/routes.py` to unpack the full selection tuple and
+  introduced a pytest verifying `/banking/api/accounts/open` accepts valid payloads and responds
+  with the expected JSON.
+- **Why**: The previous implementation raised a `ValueError` during tuple unpacking, preventing
+  players from opening accounts even with valid deposits.
+- **Purpose**: Keeps the onboarding workflow reliable and protects against regressions by
+  exercising the happy-path API response in automated tests.
 ## 2025-09-27
 - **What**: Moved the bank account onboarding workflow from the main hub to the banking home page and restored the
   account opening interaction.
