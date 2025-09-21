@@ -1,0 +1,72 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('banking.static', filename='styles/banking.css') }}" />
+{% endblock %}
+
+{% block content %}
+  <section class="banking-subnav" aria-label="Banking navigation">
+    <nav class="banking-tabs">
+      <a
+        href="{{ url_for('banking.home') }}"
+        class="banking-tab{% if active_banking_tab == 'home' %} is-active{% endif %}"
+        {% if active_banking_tab == 'home' %}aria-current="page"{% endif %}
+      >
+        Banking Home
+      </a>
+      <a
+        href="{{ url_for('banking.transfer') }}"
+        class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
+        {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
+      >
+        Banking Transfer
+      </a>
+    </nav>
+  </section>
+
+  <section class="banking-overview">
+    <header class="banking-overview__header">
+      <h1>Lifesim — Banking Home</h1>
+      <p>Review balances at a glance and stay ahead of account fees, interest, and policies.</p>
+    </header>
+    <div class="account-grid">
+      {% for account in accounts %}
+        <article class="account-card" data-account-card data-account="{{ account.id }}">
+          <h2>{{ account.name }}</h2>
+          <p class="account-card__type">{{ account.type }}</p>
+          <p class="account-card__balance">
+            <span data-balance-value>${{ '%.2f'|format(account.balance) }}</span>
+          </p>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="banking-insights" aria-label="Banking information">
+    <header>
+      <h2>Account insights and fees</h2>
+      <p>Know what each account costs, how it earns interest, and the limits that keep you compliant.</p>
+    </header>
+    <div class="insight-grid">
+      {% for insight in account_insights %}
+        <article class="insight-card">
+          <h3>{{ insight.account }}</h3>
+          <ul class="insight-list">
+            {% for detail in insight.details %}
+              <li class="insight-item">
+                <span class="insight-label">{{ detail.label }}</span>
+                <span class="insight-value">{{ detail.value }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </article>
+      {% endfor %}
+    </div>
+    <footer class="insight-footer">
+      <p>
+        Monitor balances weekly to avoid avoidable charges and maximize savings growth. When fees are imminent,
+        shift funds through the transfer hub to rebalance ahead of billing cycles.
+      </p>
+    </footer>
+  </section>
+{% endblock %}
