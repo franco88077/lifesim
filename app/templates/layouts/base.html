@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Lifesim — Home" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/base.css') }}" />
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <div class="layout">
+      <header class="top-bar">
+        <div class="brand">Lifesim</div>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">
+          <span class="toggle-label">Menu</span>
+        </button>
+        <nav id="primary-nav" class="primary-nav" aria-label="Main navigation">
+          <a href="{{ url_for('index.home') }}" class="nav-item{% if active_nav == 'home' %} active{% endif %}">Home</a>
+          <a href="{{ url_for('banking.dashboard') }}" class="nav-item{% if active_nav == 'banking' %} active{% endif %}">Banking</a>
+          <a href="{{ url_for('real_estate.portfolio') }}" class="nav-item{% if active_nav == 'real_estate' %} active{% endif %}">Real Estate</a>
+          <a href="{{ url_for('shop.catalog') }}" class="nav-item{% if active_nav == 'shop' %} active{% endif %}">Shop</a>
+          <a href="{{ url_for('job.workspace') }}" class="nav-item{% if active_nav == 'job' %} active{% endif %}">Job</a>
+          <a href="{{ url_for('logging.console') }}" class="nav-item">Logs</a>
+        </nav>
+        <div class="environment">Env: {{ environment|capitalize }}</div>
+      </header>
+
+      <main class="content" role="main">
+        {% block content %}{% endblock %}
+      </main>
+
+      <aside class="log-console" aria-live="polite">
+        <header class="log-console__header">
+          <h2>Runtime Log Console</h2>
+          <div class="log-console__actions">
+            <button id="log-toggle" type="button">Toggle</button>
+          </div>
+        </header>
+        <section class="log-filters">
+          <label>
+            Level
+            <select id="log-level">
+              <option value="">All</option>
+              {% for level in log_levels %}
+                <option value="{{ level }}">{{ level|capitalize }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            Component
+            <select id="log-component">
+              <option value="">All</option>
+              {% for component in log_components %}
+                <option value="{{ component }}">{{ component }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            Search
+            <input id="log-search" type="search" placeholder="Find events" />
+          </label>
+          <label class="debug-toggle">
+            <input id="debug-toggle" type="checkbox" />
+            Debug mode
+          </label>
+        </section>
+        <section class="log-results" id="log-results" tabindex="0"></section>
+      </aside>
+    </div>
+
+    <div id="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+    <script src="{{ url_for('static', filename='js/base.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/log_panel.js') }}" defer></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

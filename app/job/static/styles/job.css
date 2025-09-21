@@ -1,0 +1,129 @@
+.job-hero {
+  background: linear-gradient(140deg, rgba(244, 114, 182, 0.25), rgba(192, 132, 252, 0.25));
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  border: 1px solid rgba(244, 114, 182, 0.35);
+}
+
+.job-hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(2rem, 3.5vw, 2.9rem);
+}
+
+.hero-insight {
+  background: rgba(30, 64, 175, 0.3);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  min-width: 220px;
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid rgba(191, 219, 254, 0.35);
+}
+
+.hero-insight strong {
+  font-size: 1.5rem;
+}
+
+.schedule {
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.schedule header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hours-toggle {
+  border: 1px solid rgba(96, 165, 250, 0.6);
+  background: transparent;
+  color: rgba(191, 219, 254, 0.9);
+  border-radius: 999px;
+  padding: 0.4rem 1.25rem;
+}
+
+.schedule__table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+.schedule__table th,
+.schedule__table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  text-align: left;
+}
+
+.schedule__table tr.focus {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.milestones {
+  background: rgba(30, 41, 59, 0.85);
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  display: grid;
+  gap: 1.5rem;
+}
+
+.milestones__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.milestone {
+  background: rgba(109, 40, 217, 0.25);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(196, 181, 253, 0.4);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.milestone[data-status="In progress"] {
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+@media (max-width: 640px) {
+  .schedule__table thead {
+    display: none;
+  }
+
+  .schedule__table tr {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+  }
+
+  .schedule__table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: none;
+    padding: 0.5rem 0;
+  }
+
+  .schedule__table td::before {
+    content: attr(data-label);
+    color: rgba(148, 163, 184, 0.75);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+}
+
+.weekly-total {
+  font-weight: 700;
+  font-size: 1.25rem;
+}

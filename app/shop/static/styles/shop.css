@@ -1,0 +1,102 @@
+.shop-hero {
+  background: linear-gradient(130deg, rgba(59, 130, 246, 0.35), rgba(147, 197, 253, 0.15));
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  display: grid;
+  gap: 1.5rem;
+  border: 1px solid rgba(147, 197, 253, 0.35);
+}
+
+.shop-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
+}
+
+.shop-filters {
+  display: inline-flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  border-radius: 999px;
+  border: 1px solid rgba(191, 219, 254, 0.4);
+  background: transparent;
+  color: rgba(226, 232, 240, 0.9);
+  padding: 0.5rem 1.25rem;
+}
+
+.filter-button.active {
+  background: rgba(59, 130, 246, 0.35);
+  border-color: rgba(59, 130, 246, 0.6);
+}
+
+.shop-inventory {
+  display: grid;
+  gap: 2rem;
+}
+
+.shop-collection {
+  background: rgba(15, 23, 42, 0.75);
+  border-radius: 1.75rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+  border: 1px solid rgba(94, 234, 212, 0.25);
+}
+
+.shop-collection h2 {
+  margin-top: 0;
+}
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.shop-item {
+  background: rgba(30, 64, 175, 0.25);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.shop-item__price {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.add-to-cart {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  background: transparent;
+  color: rgba(191, 219, 254, 0.95);
+  padding: 0.4rem 0.8rem;
+}
+
+.cart {
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 1.5rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  display: grid;
+  gap: 1rem;
+}
+
+#cart-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+#cart-list li {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}

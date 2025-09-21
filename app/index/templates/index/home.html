@@ -1,0 +1,56 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('index.static', filename='styles/home.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('index.static', filename='js/home.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <section class="welcome">
+    <div class="welcome__text">
+      <h1>Lifesim — Home</h1>
+      <p>Your life systems at a glance. Track your finances, assets, and work streams in one unified hub.</p>
+      <div class="welcome__cta">
+        <a class="cta" href="{{ url_for('banking.dashboard') }}">Review banking health</a>
+        <a class="cta secondary" href="{{ url_for('real_estate.portfolio') }}">Inspect properties</a>
+      </div>
+    </div>
+    <div class="welcome__visual" aria-hidden="true">
+      <div class="orb"></div>
+      <div class="grid"></div>
+    </div>
+  </section>
+
+  <section class="metrics" aria-label="Quick metrics">
+    {% for label, value in metrics.items() %}
+      <article class="metric">
+        <h2>{{ label.replace('_', ' ') | title }}</h2>
+        <p class="metric__value">{{ value }}</p>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section class="timeline" aria-label="Upcoming focus">
+    <header class="timeline__header">
+      <h2>Upcoming Focus</h2>
+      <p>Automatic insight stream based on your current obligations.</p>
+    </header>
+    <ol class="timeline__list">
+      <li>
+        <h3>Budget refresh</h3>
+        <p>Reconcile your checking transactions and review savings targets.</p>
+      </li>
+      <li>
+        <h3>Property inspection</h3>
+        <p>Schedule a maintenance review for Lakeview Cottage rental unit.</p>
+      </li>
+      <li>
+        <h3>Work sprint</h3>
+        <p>Prepare deliverables for Friday client review and confirm milestones.</p>
+      </li>
+    </ol>
+  </section>
+{% endblock %}
