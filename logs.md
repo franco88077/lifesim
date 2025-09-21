@@ -1,5 +1,15 @@
 # Lifesim change log
 
+## 2025-09-21
+- **What**: Updated the logging blueprint to expose its static assets and verified the logs console
+  loads correctly.
+- **How**: Added the `static_folder="static"` argument when constructing the logging blueprint and
+  reloaded the Flask dev server to hit `/logs/` plus the stylesheet and script endpoints.
+- **Why**: Without the static folder registered, the console page raised `BuildError` exceptions
+  when resolving `/logs/static/...` assets, breaking its layout.
+- **Purpose**: Restores the dedicated logging console so users can review runtime activity with the
+  intended styles and interactivity.
+
 ## 2024-04-08
 - **What**: Established the foundational Flask application with modular blueprints for the home hub,
   banking, real estate, shop, and job systems. Added a shared base layout, responsive navigation, and
