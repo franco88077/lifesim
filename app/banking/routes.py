@@ -12,6 +12,7 @@ from ..logging_service import log_manager
 from . import bp
 from .models import BankAccount, BankTransaction
 from .services import (
+    decimal_to_number,
     build_account_due_items,
     build_account_insights,
     build_banking_state,
@@ -164,6 +165,13 @@ def home():
     accounts = fetch_accounts()
     _log_cash_health(accounts)
 
+    cash_account = next((account for account in accounts if account.slug == "hand"), None)
+    cash_balance = cash_account.balance if cash_account else Decimal("0")
+    available_cash = format_currency(cash_balance)
+    available_cash_value = decimal_to_number(cash_balance)
+    account_slugs = {account.slug for account in accounts if account.slug != "hand"}
+    missing_accounts = [slug for slug in ("checking", "savings") if slug not in account_slugs]
+
     account_due_cards = build_account_due_items(settings, accounts)
     has_open_accounts = any(
         account.slug in {"checking", "savings"} for account in accounts
@@ -187,15 +195,29 @@ def home():
         _serialize_transaction(transaction) for transaction in transactions[:4]
     ]
 
+    account_opening_requirements = {
+        "checking": format_currency(settings.checking_opening_deposit),
+        "savings": format_currency(settings.savings_opening_deposit),
+    }
+    account_opening_requirements_value = {
+        "checking": decimal_to_number(settings.checking_opening_deposit),
+        "savings": decimal_to_number(settings.savings_opening_deposit),
+    }
+
     return render_template(
         "banking/home.html",
         title="Lifesim — Banking Home",
         accounts=serialized_accounts,
         has_open_accounts=has_open_accounts,
+        missing_accounts=missing_accounts,
         account_due_cards=account_due_cards,
         recent_transactions=serialized_transactions,
         has_more_transactions=has_more_transactions,
         bank_settings=settings,
+        available_cash=available_cash,
+        available_cash_value=available_cash_value,
+        account_opening_requirements=account_opening_requirements,
+        account_opening_requirements_value=account_opening_requirements_value,
         active_nav="banking",
         active_banking_tab="home",
     )
