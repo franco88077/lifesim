@@ -1,4 +1,9 @@
 # Lifesim change log
+## 2025-09-30
+- **What**: Prevented the bulk account closure control from appearing when only one bank account is open.
+- **How**: Counted open banking accounts in the routes helper, passed a new template flag, and wrapped the “Close Bank Accounts” card in a conditional.
+- **Why**: Closing all accounts charged the full bank-wide fee even when a single account remained, penalising players for non-existent closures.
+- **Purpose**: Keeps closure actions aligned with available accounts and avoids surprise fees when only checking or savings is active.
 ## 2025-09-29
 - **What**: Streamlined banking visibility by removing the unused policy ledger and monthly service fee field, hiding
   inaccessible tabs, and gating insights, transfers, and home widgets behind actual account availability.

@@ -60,7 +60,7 @@ def _serialize_transaction(transaction: BankTransaction) -> dict[str, object]:
     }
 
 
-def _collect_account_flags(accounts: Iterable[BankAccount]) -> dict[str, bool]:
+def _collect_account_flags(accounts: Iterable[BankAccount]) -> dict[str, bool | int]:
     """Summarize which banking accounts are currently available."""
 
     open_slugs = {
@@ -71,11 +71,13 @@ def _collect_account_flags(accounts: Iterable[BankAccount]) -> dict[str, bool]:
 
     has_checking = "checking" in open_slugs
     has_savings = "savings" in open_slugs
+    open_bank_account_count = len(open_slugs)
 
     return {
         "has_checking": has_checking,
         "has_savings": has_savings,
         "has_bank_accounts": has_checking or has_savings,
+        "open_bank_account_count": open_bank_account_count,
     }
 
 
@@ -984,6 +986,7 @@ def settings():
 
     serialized_accounts = [_serialize_account(account) for account in accounts]
     account_lookup = {account["id"]: account for account in serialized_accounts}
+    can_close_all_accounts = account_flags["open_bank_account_count"] > 1
 
     return render_template(
         "banking/settings.html",
@@ -997,6 +1000,7 @@ def settings():
         has_bank_accounts=account_flags["has_bank_accounts"],
         has_checking_account=account_flags["has_checking"],
         has_savings_account=account_flags["has_savings"],
+        can_close_all_accounts=can_close_all_accounts,
     )
 
 

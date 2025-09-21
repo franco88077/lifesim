@@ -260,21 +260,23 @@
           <p>Return account balances to cash and apply the configured closure fees automatically.</p>
         </header>
         <div class="settings-closure-grid">
-          <form method="post" class="settings-closure-card">
-            <input type="hidden" name="intent" value="close-accounts" />
-            <input type="hidden" name="target" value="all" />
-            <h3>Close All Accounts</h3>
-            <p>
-              Move both checking and savings balances into cash. Closure fee:
-              ${{ '%.2f'|format(bank_settings.bank_closure_fee) }}.
-            </p>
-            <button type="submit" class="settings-closure-button" {% if all_closed %}disabled{% endif %}>
-              Close Bank Accounts
-            </button>
-            {% if all_closed %}
-              <p class="settings-closure-note">Checking and savings are already closed.</p>
-            {% endif %}
-          </form>
+          {% if can_close_all_accounts %}
+            <form method="post" class="settings-closure-card">
+              <input type="hidden" name="intent" value="close-accounts" />
+              <input type="hidden" name="target" value="all" />
+              <h3>Close All Accounts</h3>
+              <p>
+                Move both checking and savings balances into cash. Closure fee:
+                ${{ '%.2f'|format(bank_settings.bank_closure_fee) }}.
+              </p>
+              <button type="submit" class="settings-closure-button" {% if all_closed %}disabled{% endif %}>
+                Close Bank Accounts
+              </button>
+              {% if all_closed %}
+                <p class="settings-closure-note">Checking and savings are already closed.</p>
+              {% endif %}
+            </form>
+          {% endif %}
           {% if has_checking_account %}
             <form method="post" class="settings-closure-card">
               <input type="hidden" name="intent" value="close-accounts" />
