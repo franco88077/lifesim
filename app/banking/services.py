@@ -70,12 +70,43 @@ def ensure_bank_settings_schema() -> None:
         "savings_opening_deposit",
         "ALTER TABLE bank_settings ADD COLUMN savings_opening_deposit NUMERIC(10, 2) NOT NULL DEFAULT 50.00",
     )
+    queue(
+        "bank_closure_fee",
+        "ALTER TABLE bank_settings ADD COLUMN bank_closure_fee NUMERIC(10, 2) NOT NULL DEFAULT 35.00",
+    )
+    queue(
+        "checking_closure_fee",
+        "ALTER TABLE bank_settings ADD COLUMN checking_closure_fee NUMERIC(10, 2) NOT NULL DEFAULT 25.00",
+    )
+    queue(
+        "savings_closure_fee",
+        "ALTER TABLE bank_settings ADD COLUMN savings_closure_fee NUMERIC(10, 2) NOT NULL DEFAULT 15.00",
+    )
 
     if not alterations:
         return
 
     for statement in alterations:
         db.session.execute(text(statement))
+    db.session.commit()
+
+
+def ensure_bank_account_schema() -> None:
+    """Ensure the bank_account table includes lifecycle management fields."""
+
+    inspector = inspect(db.engine)
+    if not inspector.has_table("bank_account"):
+        return
+
+    existing_columns = {column["name"] for column in inspector.get_columns("bank_account")}
+
+    if "is_closed" in existing_columns:
+        return
+
+    db.session.execute(
+        text("ALTER TABLE bank_account ADD COLUMN is_closed BOOLEAN NOT NULL DEFAULT 0")
+    )
+    db.session.execute(text("UPDATE bank_account SET is_closed = 0"))
     db.session.commit()
 
 
@@ -104,6 +135,7 @@ def ensure_bank_defaults() -> BankSettings:
     """Ensure banking defaults exist before interacting with the system."""
 
     ensure_bank_settings_schema()
+    ensure_bank_account_schema()
 
     settings = BankSettings.query.first()
     changed = False
@@ -122,6 +154,9 @@ def ensure_bank_defaults() -> BankSettings:
         ("savings_anchor_day", 1),
         ("checking_opening_deposit", Decimal("100.00")),
         ("savings_opening_deposit", Decimal("50.00")),
+        ("bank_closure_fee", Decimal("35.00")),
+        ("checking_closure_fee", Decimal("25.00")),
+        ("savings_closure_fee", Decimal("15.00")),
     )
 
     for attribute, default_value in defaults:
@@ -150,6 +185,7 @@ def ensure_bank_defaults() -> BankSettings:
                 name=config["name"],
                 category=config["category"],
                 balance=quantize_amount(config["balance"]),
+                is_closed=False,
             )
             db.session.add(account)
             accounts_by_slug[account.slug] = account
@@ -178,10 +214,13 @@ def ensure_bank_defaults() -> BankSettings:
     return settings
 
 
-def fetch_accounts() -> list[BankAccount]:
-    """Return all bank accounts sorted by creation order."""
+def fetch_accounts(*, include_closed: bool = False) -> list[BankAccount]:
+    """Return bank accounts sorted by creation order."""
 
-    return list(BankAccount.query.order_by(BankAccount.created_at.asc()).all())
+    query = BankAccount.query.order_by(BankAccount.created_at.asc())
+    if not include_closed:
+        query = query.filter(BankAccount.is_closed.is_(False))
+    return list(query.all())
 
 
 def fetch_recent_transactions(
@@ -546,12 +585,16 @@ def format_currency(amount: Decimal | float | str) -> str:
     return f"${quantized:,.2f}"
 
 
-def find_account(slug: str) -> BankAccount | None:
+def find_account(slug: str, *, include_closed: bool = False) -> BankAccount | None:
     """Return the requested account, if it exists."""
 
     if not slug:
         return None
-    return BankAccount.query.filter_by(slug=slug).first()
+
+    query = BankAccount.query.filter_by(slug=slug)
+    if not include_closed:
+        query = query.filter(BankAccount.is_closed.is_(False))
+    return query.first()
 
 
 def update_account_balance(account: BankAccount, amount: Decimal) -> None:
