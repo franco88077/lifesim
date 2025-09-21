@@ -148,6 +148,38 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.round(parsed * 100) / 100;
   };
 
+  const sendTransferRequest = async (form, payload) => {
+    const endpoint = form?.dataset.endpoint;
+    if (!endpoint) {
+      showFeedback(form, "Transfer endpoint is unavailable.", "error");
+      return;
+    }
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.success) {
+        const message = data.message || "Unable to complete the transfer.";
+        throw new Error(message);
+      }
+
+      state = data.state || state;
+      updateCards();
+      renderTransactions();
+      form.reset();
+      updatePresetSummaries();
+      showFeedback(form, data.message, "success");
+    } catch (error) {
+      showFeedback(form, error.message || "Transfer failed. Try again.", "error");
+    }
+  };
+
   depositDestination?.addEventListener("change", updatePresetSummaries);
   withdrawSource?.addEventListener("change", updatePresetSummaries);
 
@@ -160,13 +192,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const amount = sanitizeAmount(formData.get("amount"));
       const destination = formData.get("destination");
 
-      if (!state.balances?.hand) {
-        showFeedback(depositForm, "Cash on hand balance is unavailable.", "error");
-        return;
-      }
-
-      if (!destination || !state.balances?.[destination]) {
-        showFeedback(depositForm, "Select a valid destination account.", "error");
+      if (!destination) {
+        showFeedback(depositForm, "Select a destination account.", "error");
         return;
       }
 
@@ -175,35 +202,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      if (amount > state.balances.hand.balance) {
-        showFeedback(
-          depositForm,
-          `Only ${formatCurrency(state.balances.hand.balance)} available in cash on hand.`,
-          "error",
-        );
-        return;
-      }
-
-      state.balances.hand.balance = Number((state.balances.hand.balance - amount).toFixed(2));
-      state.balances[destination].balance = Number((state.balances[destination].balance + amount).toFixed(2));
-
-      state.transactions.unshift({
-        name: presets.allocation.name,
-        description: presets.allocation.describe(destination),
+      sendTransferRequest(depositForm, {
         amount,
-        direction: "credit",
-        account: destination,
+        destination,
       });
-
-      updateCards();
-      renderTransactions();
-      depositForm.reset();
-      updatePresetSummaries();
-      showFeedback(
-        depositForm,
-        `Transferred ${formatCurrency(amount)} to ${getAccountLabel(destination)}.`,
-        "success",
-      );
     });
   }
 
@@ -216,13 +218,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const amount = sanitizeAmount(formData.get("amount"));
       const source = formData.get("source");
 
-      if (!state.balances?.hand) {
-        showFeedback(withdrawForm, "Cash on hand balance is unavailable.", "error");
-        return;
-      }
-
-      if (!source || !state.balances?.[source]) {
-        showFeedback(withdrawForm, "Select a valid source account.", "error");
+      if (!source) {
+        showFeedback(withdrawForm, "Select a source account.", "error");
         return;
       }
 
@@ -231,35 +228,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      if (amount > state.balances[source].balance) {
-        showFeedback(
-          withdrawForm,
-          `${getAccountLabel(source)} only has ${formatCurrency(state.balances[source].balance)} available.`,
-          "error",
-        );
-        return;
-      }
-
-      state.balances[source].balance = Number((state.balances[source].balance - amount).toFixed(2));
-      state.balances.hand.balance = Number((state.balances.hand.balance + amount).toFixed(2));
-
-      state.transactions.unshift({
-        name: presets.withdrawal.name,
-        description: presets.withdrawal.describe(source),
+      sendTransferRequest(withdrawForm, {
         amount,
-        direction: "debit",
-        account: source,
+        source,
       });
-
-      updateCards();
-      renderTransactions();
-      withdrawForm.reset();
-      updatePresetSummaries();
-      showFeedback(
-        withdrawForm,
-        `Moved ${formatCurrency(amount)} from ${getAccountLabel(source)} to cash on hand.`,
-        "success",
-      );
     });
   }
 

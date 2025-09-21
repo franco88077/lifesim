@@ -39,3 +39,16 @@
   account policy messaging to match the updated product direction.
 - **Purpose**: Gives players a streamlined money hub that highlights balances, surfaces fees before
   they post, and keeps every transfer consistently documented.
+
+## 2024-04-11
+- **What**: Migrated the banking system to the database, added a configurable settings console, and
+  refreshed the banking UI for a bright theme with a wider container.
+- **How**: Introduced SQLAlchemy models for bank settings, accounts, and transactions; built service
+  helpers to seed defaults and serialize ledger data; rewrote the banking routes to persist transfers
+  and expose JSON endpoints; implemented the settings template and form handlers; modernized the
+  banking JavaScript to sync with the API; and redesigned both base and banking styles for a 1200px
+  light layout.
+- **Why**: Persistent balances, fees, and interest rates are essential for reliable simulation play,
+  while administrators need an interface to tune banking behavior without touching code.
+- **Purpose**: Ensures every transaction and configuration change is tracked, empowers tuning through
+  a dedicated settings page, and presents the banking module in a readable light theme across devices.
