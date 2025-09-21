@@ -60,6 +60,25 @@ def _serialize_transaction(transaction: BankTransaction) -> dict[str, object]:
     }
 
 
+def _collect_account_flags(accounts: Iterable[BankAccount]) -> dict[str, bool]:
+    """Summarize which banking accounts are currently available."""
+
+    open_slugs = {
+        account.slug
+        for account in accounts
+        if getattr(account, "is_closed", False) is False and account.slug != "hand"
+    }
+
+    has_checking = "checking" in open_slugs
+    has_savings = "savings" in open_slugs
+
+    return {
+        "has_checking": has_checking,
+        "has_savings": has_savings,
+        "has_bank_accounts": has_checking or has_savings,
+    }
+
+
 def _log_cash_health(accounts: Iterable[BankAccount]) -> None:
     """Emit warnings if liquid cash drops below the healthy threshold."""
 
@@ -164,6 +183,7 @@ def home():
     ensure_bank_defaults()
     settings = get_bank_settings()
     accounts = fetch_accounts()
+    account_flags = _collect_account_flags(accounts)
     _log_cash_health(accounts)
 
     cash_account = next((account for account in accounts if account.slug == "hand"), None)
@@ -173,10 +193,10 @@ def home():
     account_slugs = {account.slug for account in accounts if account.slug != "hand"}
     missing_accounts = [slug for slug in ("checking", "savings") if slug not in account_slugs]
 
-    account_due_cards = build_account_due_items(settings, accounts)
-    has_open_accounts = any(
-        account.slug in {"checking", "savings"} for account in accounts
-    )
+    account_due_cards = [
+        card for card in build_account_due_items(settings, accounts) if card["is_open"]
+    ]
+    has_open_accounts = account_flags["has_bank_accounts"]
 
     log_manager.record(
         component="Banking",
@@ -221,6 +241,9 @@ def home():
         account_opening_requirements_value=account_opening_requirements_value,
         active_nav="banking",
         active_banking_tab="home",
+        has_bank_accounts=account_flags["has_bank_accounts"],
+        has_checking_account=account_flags["has_checking"],
+        has_savings_account=account_flags["has_savings"],
     )
 
 
@@ -231,6 +254,7 @@ def insights():
     ensure_bank_defaults()
     settings = get_bank_settings()
     accounts = fetch_accounts()
+    account_flags = _collect_account_flags(accounts)
 
     log_manager.record(
         component="Banking",
@@ -243,14 +267,22 @@ def insights():
     )
 
     insights = build_account_insights(settings, accounts)
+    visible_accounts = [
+        account for account in insights["accounts"] if account["is_open"]
+    ]
 
     return render_template(
         "banking/insights.html",
         title="Lifesim — Banking Insights",
         account_insights=insights,
+        insight_accounts=visible_accounts,
+        insight_due_items=insights["due_items"],
         bank_settings=settings,
         active_nav="banking",
         active_banking_tab="insights",
+        has_bank_accounts=account_flags["has_bank_accounts"],
+        has_checking_account=account_flags["has_checking"],
+        has_savings_account=account_flags["has_savings"],
     )
 
 
@@ -260,6 +292,8 @@ def transactions():
 
     ensure_bank_defaults()
     settings = get_bank_settings()
+    accounts = fetch_accounts()
+    account_flags = _collect_account_flags(accounts)
 
     raw_page = request.args.get("page", default=1, type=int)
     raw_per_page = request.args.get("per_page", default=10, type=int)
@@ -308,6 +342,7 @@ def transactions():
         bank_settings=settings,
         active_nav="banking",
         active_banking_tab="home",
+        has_bank_accounts=account_flags["has_bank_accounts"],
     )
 
 
@@ -318,6 +353,7 @@ def transfer():
     ensure_bank_defaults()
     settings = get_bank_settings()
     accounts = fetch_accounts()
+    account_flags = _collect_account_flags(accounts)
     banking_state = build_banking_state(settings=settings)
     _log_cash_health(accounts)
 
@@ -332,6 +368,7 @@ def transfer():
     )
 
     serialized_accounts = [_serialize_account(account) for account in accounts]
+    can_transfer = len(serialized_accounts) > 1
 
     return render_template(
         "banking/transfer.html",
@@ -341,6 +378,10 @@ def transfer():
         bank_settings=settings,
         active_nav="banking",
         active_banking_tab="transfer",
+        has_bank_accounts=account_flags["has_bank_accounts"],
+        has_checking_account=account_flags["has_checking"],
+        has_savings_account=account_flags["has_savings"],
+        can_transfer=can_transfer,
     )
 
 
@@ -895,7 +936,11 @@ def settings():
 
     ensure_bank_defaults()
     settings = get_bank_settings()
-    accounts = fetch_accounts()
+    accounts = fetch_accounts(include_closed=True)
+    open_accounts = [
+        account for account in accounts if getattr(account, "is_closed", False) is False
+    ]
+    account_flags = _collect_account_flags(open_accounts)
     feedback: dict[str, str] | None = None
 
     if request.method == "GET":
@@ -928,6 +973,12 @@ def settings():
 
         settings = get_bank_settings()
         accounts = fetch_accounts(include_closed=True)
+        open_accounts = [
+            account
+            for account in accounts
+            if getattr(account, "is_closed", False) is False
+        ]
+        account_flags = _collect_account_flags(open_accounts)
 
     _log_cash_health(accounts)
 
@@ -943,14 +994,16 @@ def settings():
         feedback=feedback,
         active_nav="banking",
         active_banking_tab="settings",
+        has_bank_accounts=account_flags["has_bank_accounts"],
+        has_checking_account=account_flags["has_checking"],
+        has_savings_account=account_flags["has_savings"],
     )
 
 
 def _handle_settings_update(settings) -> dict[str, str]:
-    """Persist updates to the bank name, fee, and interest rate."""
+    """Persist updates to the bank identity, balances, and interest rate."""
 
     bank_name = (request.form.get("bank_name") or "").strip()
-    fee_raw = request.form.get("standard_fee")
     interest_raw = request.form.get("savings_interest_rate")
     checking_min_balance_raw = request.form.get("checking_minimum_balance")
     checking_min_fee_raw = request.form.get("checking_minimum_fee")
@@ -966,14 +1019,6 @@ def _handle_settings_update(settings) -> dict[str, str]:
 
     if not bank_name:
         errors.append("Provide a name for the banking system.")
-
-    try:
-        fee_amount = quantize_amount(fee_raw)
-        if fee_amount < 0:
-            raise ValueError
-    except (ValueError, TypeError):
-        errors.append("Enter a valid, non-negative fee amount.")
-        fee_amount = settings.standard_fee
 
     try:
         interest_rate = normalize_interest_rate(interest_raw)
@@ -1060,7 +1105,6 @@ def _handle_settings_update(settings) -> dict[str, str]:
 
     try:
         settings.bank_name = bank_name
-        settings.standard_fee = fee_amount
         settings.savings_interest_rate = interest_rate
         settings.checking_minimum_balance = checking_minimum_balance
         settings.checking_minimum_fee = checking_minimum_fee
@@ -1093,7 +1137,7 @@ def _handle_settings_update(settings) -> dict[str, str]:
         result="success",
         title="Bank settings updated",
         user_summary=(
-            f"Bank renamed to {bank_name} with fee {format_currency(fee_amount)}, interest {interest_rate:.3f}%"
+            f"Bank renamed to {bank_name} with interest {interest_rate:.3f}%"
             f", checking minimum {format_currency(checking_minimum_balance)} ({format_currency(checking_minimum_fee)} fee)"
             f", savings minimum {format_currency(savings_minimum_balance)} ({format_currency(savings_minimum_fee)} fee)"
             f", checking opening deposit {format_currency(checking_opening_deposit)}"

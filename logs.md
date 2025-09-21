@@ -1,4 +1,14 @@
 # Lifesim change log
+## 2025-09-29
+- **What**: Streamlined banking visibility by removing the unused policy ledger and monthly service fee field, hiding
+  inaccessible tabs, and gating insights, transfers, and home widgets behind actual account availability.
+- **How**: Trimmed the settings template, updated banking routes with helper flags, filtered insight/due payloads, toggled
+  navigation links, and wrapped template sections so transactions, balances, transfer forms, and closure tools only appear
+  when the user owns the relevant accounts.
+- **Why**: Players without checking or savings access saw misleading options and empty data, while the redundant fee input
+  duplicated account-specific charges.
+- **Purpose**: Keeps the UI focused on actionable controls, clarifies onboarding when no bank accounts exist, and prevents
+  misconfiguration by eliminating obsolete settings.
 ## 2025-09-28
 - **What**: Fixed the account opening API to total deposits correctly and added test coverage.
 - **How**: Updated the sum operation in `banking/routes.py` to unpack the full selection tuple and

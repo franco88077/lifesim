@@ -15,20 +15,22 @@
         >
           Banking Home
         </a>
-        <a
-          href="{{ url_for('banking.insights') }}"
-          class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
-          {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
-        >
-          Account Insights
-        </a>
-        <a
-          href="{{ url_for('banking.transfer') }}"
-          class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
-          {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
-        >
-          Banking Transfer
-        </a>
+        {% if has_bank_accounts %}
+          <a
+            href="{{ url_for('banking.insights') }}"
+            class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
+            {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
+          >
+            Account Insights
+          </a>
+          <a
+            href="{{ url_for('banking.transfer') }}"
+            class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
+            {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
+          >
+            Banking Transfer
+          </a>
+        {% endif %}
         <a
           href="{{ url_for('banking.settings') }}"
           class="banking-tab{% if active_banking_tab == 'settings' %} is-active{% endif %}"
@@ -64,32 +66,6 @@
         <p>Align {{ bank_settings.bank_name }} policies, thresholds, and closure fees.</p>
       </header>
 
-      <section class="settings-ledger" aria-label="Policy ledger">
-        <h3>Policy Ledger</h3>
-        <ul class="settings-ledger__list">
-          <li class="settings-ledger__item">
-            <h4>Monthly Service Fee</h4>
-            <p>Assessed when checking or savings fall below their required balance at review.</p>
-          </li>
-          <li class="settings-ledger__item">
-            <h4>Minimum Balances</h4>
-            <p>Defines the cushion that keeps accounts in good standing and avoids penalties.</p>
-          </li>
-          <li class="settings-ledger__item">
-            <h4>Opening Deposits</h4>
-            <p>Cash that must be allocated to unlock a new checking or savings account.</p>
-          </li>
-          <li class="settings-ledger__item">
-            <h4>Savings APY</h4>
-            <p>Controls the annual percentage yield applied to active savings balances.</p>
-          </li>
-          <li class="settings-ledger__item">
-            <h4>Closure Fees</h4>
-            <p>Charged when accounts are closed and funds return to cash reserves.</p>
-          </li>
-        </ul>
-      </section>
-
       <form method="post" class="settings-form">
         <input type="hidden" name="intent" value="update-settings" />
 
@@ -105,20 +81,6 @@
                 required
                 maxlength="120"
               />
-            </label>
-            <label>
-              <span>Bank — Monthly Service Fee</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="standard_fee"
-                  value="{{ '%.2f'|format(bank_settings.standard_fee) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
             </label>
           </div>
         </fieldset>
@@ -291,59 +253,65 @@
     {% set savings_is_closed = savings_account.is_closed if savings_account else False %}
     {% set all_closed = checking_is_closed and savings_is_closed %}
 
-    <section class="settings-panel" aria-label="Account closures">
-      <header>
-        <h2>Account Closures</h2>
-        <p>Return account balances to cash and apply the configured closure fees automatically.</p>
-      </header>
-      <div class="settings-closure-grid">
-        <form method="post" class="settings-closure-card">
-          <input type="hidden" name="intent" value="close-accounts" />
-          <input type="hidden" name="target" value="all" />
-          <h3>Close All Accounts</h3>
-          <p>
-            Move both checking and savings balances into cash. Closure fee:
-            ${{ '%.2f'|format(bank_settings.bank_closure_fee) }}.
-          </p>
-          <button type="submit" class="settings-closure-button" {% if all_closed %}disabled{% endif %}>
-            Close Bank Accounts
-          </button>
-          {% if all_closed %}
-            <p class="settings-closure-note">Checking and savings are already closed.</p>
+    {% if has_bank_accounts %}
+      <section class="settings-panel" aria-label="Account closures">
+        <header>
+          <h2>Account Closures</h2>
+          <p>Return account balances to cash and apply the configured closure fees automatically.</p>
+        </header>
+        <div class="settings-closure-grid">
+          <form method="post" class="settings-closure-card">
+            <input type="hidden" name="intent" value="close-accounts" />
+            <input type="hidden" name="target" value="all" />
+            <h3>Close All Accounts</h3>
+            <p>
+              Move both checking and savings balances into cash. Closure fee:
+              ${{ '%.2f'|format(bank_settings.bank_closure_fee) }}.
+            </p>
+            <button type="submit" class="settings-closure-button" {% if all_closed %}disabled{% endif %}>
+              Close Bank Accounts
+            </button>
+            {% if all_closed %}
+              <p class="settings-closure-note">Checking and savings are already closed.</p>
+            {% endif %}
+          </form>
+          {% if has_checking_account %}
+            <form method="post" class="settings-closure-card">
+              <input type="hidden" name="intent" value="close-accounts" />
+              <input type="hidden" name="target" value="checking" />
+              <h3>Close Checking Account</h3>
+              <p>
+                Transfer the checking balance to cash and charge a
+                ${{ '%.2f'|format(bank_settings.checking_closure_fee) }} closing fee.
+              </p>
+              <button type="submit" class="settings-closure-button" {% if checking_is_closed %}disabled{% endif %}>
+                Close Checking
+              </button>
+              {% if checking_is_closed %}
+                <p class="settings-closure-note">Checking is already closed.</p>
+              {% endif %}
+            </form>
           {% endif %}
-        </form>
-        <form method="post" class="settings-closure-card">
-          <input type="hidden" name="intent" value="close-accounts" />
-          <input type="hidden" name="target" value="checking" />
-          <h3>Close Checking Account</h3>
-          <p>
-            Transfer the checking balance to cash and charge a
-            ${{ '%.2f'|format(bank_settings.checking_closure_fee) }} closing fee.
-          </p>
-          <button type="submit" class="settings-closure-button" {% if checking_is_closed %}disabled{% endif %}>
-            Close Checking
-          </button>
-          {% if checking_is_closed %}
-            <p class="settings-closure-note">Checking is already closed.</p>
+          {% if has_savings_account %}
+            <form method="post" class="settings-closure-card">
+              <input type="hidden" name="intent" value="close-accounts" />
+              <input type="hidden" name="target" value="savings" />
+              <h3>Close Savings Account</h3>
+              <p>
+                Shift the savings balance into cash and apply a
+                ${{ '%.2f'|format(bank_settings.savings_closure_fee) }} closing fee.
+              </p>
+              <button type="submit" class="settings-closure-button" {% if savings_is_closed %}disabled{% endif %}>
+                Close Savings
+              </button>
+              {% if savings_is_closed %}
+                <p class="settings-closure-note">Savings is already closed.</p>
+              {% endif %}
+            </form>
           {% endif %}
-        </form>
-        <form method="post" class="settings-closure-card">
-          <input type="hidden" name="intent" value="close-accounts" />
-          <input type="hidden" name="target" value="savings" />
-          <h3>Close Savings Account</h3>
-          <p>
-            Shift the savings balance into cash and apply a
-            ${{ '%.2f'|format(bank_settings.savings_closure_fee) }} closing fee.
-          </p>
-          <button type="submit" class="settings-closure-button" {% if savings_is_closed %}disabled{% endif %}>
-            Close Savings
-          </button>
-          {% if savings_is_closed %}
-            <p class="settings-closure-note">Savings is already closed.</p>
-          {% endif %}
-        </form>
-      </div>
-    </section>
+        </div>
+      </section>
+    {% endif %}
 
     <section class="settings-panel" aria-label="Account balances">
       <header>

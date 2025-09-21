@@ -15,20 +15,22 @@
         >
           Banking Home
         </a>
-        <a
-          href="{{ url_for('banking.insights') }}"
-          class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
-          {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
-        >
-          Account Insights
-        </a>
-        <a
-          href="{{ url_for('banking.transfer') }}"
-          class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
-          {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
-        >
-          Banking Transfer
-        </a>
+        {% if has_bank_accounts %}
+          <a
+            href="{{ url_for('banking.insights') }}"
+            class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
+            {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
+          >
+            Account Insights
+          </a>
+          <a
+            href="{{ url_for('banking.transfer') }}"
+            class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
+            {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
+          >
+            Banking Transfer
+          </a>
+        {% endif %}
         <a
           href="{{ url_for('banking.settings') }}"
           class="banking-tab{% if active_banking_tab == 'settings' %} is-active{% endif %}"
