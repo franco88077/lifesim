@@ -90,6 +90,11 @@
           <div class="account-activity__balances" aria-label="Account balances">
             <h3>Account balances</h3>
             <p class="account-activity__description">Track the latest totals for each account.</p>
+            {% if not has_open_accounts %}
+              <p class="account-activity__empty">
+                No banking accounts are open yet. Use the Open Account action on the home page to get started.
+              </p>
+            {% endif %}
             <div class="account-grid">
               {% for account in accounts %}
                 <article class="account-card" data-account-card data-account="{{ account.id }}">
@@ -105,6 +110,21 @@
                 </article>
               {% endfor %}
             </div>
+            <section class="account-due" aria-label="Account due summary">
+              <h4>Account Due</h4>
+              <div class="account-due__grid">
+                {% for due in account_due_cards %}
+                  <article class="account-due__card">
+                    <header>
+                      <h5>{{ due.name }}</h5>
+                      <span class="account-due__label">Amount Due</span>
+                    </header>
+                    <p class="account-due__amount">{{ due.amount }}</p>
+                    <p class="account-due__note">{{ due.due_date }}</p>
+                  </article>
+                {% endfor %}
+              </div>
+            </section>
           </div>
         </div>
       </section>

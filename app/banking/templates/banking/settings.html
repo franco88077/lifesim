@@ -133,6 +133,20 @@
             </div>
           </label>
           <label>
+            <span>Checking opening deposit required</span>
+            <div class="settings-input">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                name="checking_opening_deposit"
+                value="{{ '%.2f'|format(bank_settings.checking_opening_deposit) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </label>
+          <label>
             <span>Savings minimum balance</span>
             <div class="settings-input">
               <span class="prefix">$</span>
@@ -154,6 +168,20 @@
                 type="number"
                 name="savings_minimum_fee"
                 value="{{ '%.2f'|format(bank_settings.savings_minimum_fee) }}"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </label>
+          <label>
+            <span>Savings opening deposit required</span>
+            <div class="settings-input">
+              <span class="prefix">$</span>
+              <input
+                type="number"
+                name="savings_opening_deposit"
+                value="{{ '%.2f'|format(bank_settings.savings_opening_deposit) }}"
                 min="0"
                 step="0.01"
                 required

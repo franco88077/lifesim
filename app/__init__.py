@@ -43,10 +43,21 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     @app.context_processor
     def inject_globals() -> dict[str, object]:
         """Inject shared template variables."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        from .banking.services import get_bank_settings
+
+        try:
+            settings = get_bank_settings()
+        except SQLAlchemyError:
+            settings = None
+        bank_name = settings.bank_name if settings else "Lifesim Bank"
         return {
             "environment": app.config.get("ENVIRONMENT", "development"),
             "log_levels": log_manager.available_levels,
             "log_components": log_manager.available_components,
+            "bank_brand_name": bank_name,
+            "global_bank_settings": settings,
         }
 
     return app

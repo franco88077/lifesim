@@ -47,35 +47,91 @@
           each transfer with confidence.
         </p>
       </header>
-      <div class="banking-insights">
-        <header>
-          <h2>Account insights and fees</h2>
-          <p>
-            Study the policies for each account before moving money. Staying ahead of fees protects your
-            long-term savings.
-          </p>
-        </header>
-        <div class="insight-grid">
-          {% for insight in account_insights %}
-            <article class="insight-card">
-              <h3>{{ insight.account }}</h3>
-              <ul class="insight-list">
-                {% for detail in insight.details %}
-                  <li class="insight-item">
-                    <span class="insight-label">{{ detail.label }}</span>
-                    <span class="insight-value">{{ detail.value }}</span>
-                  </li>
-                {% endfor %}
-              </ul>
-            </article>
-          {% endfor %}
-        </div>
-        <footer class="insight-footer">
-          <p>
-            Monitor balances weekly and rebalance through the transfer hub ahead of billing cycles. Captured
-            transactions double as an audit trail for every move.
-          </p>
-        </footer>
+      <div class="insights-layout">
+        <section class="insight-panel" aria-label="Anchor dates">
+          <header class="insight-panel__header">
+            <h2>Anchor timelines</h2>
+            <p>See when each account started, when reviews occur, and what balances keep fees away.</p>
+          </header>
+          <div class="insight-panel__grid">
+            {% for key in ("checking", "savings") %}
+              {% set insight = account_insights[key] %}
+              <article class="insight-summary">
+                <header class="insight-summary__header">
+                  <h3>{{ insight.name }}</h3>
+                  <span class="insight-status{% if insight.is_open %} insight-status--open{% else %} insight-status--closed{% endif %}">
+                    {% if insight.is_open %}Open{% else %}Not open{% endif %}
+                  </span>
+                </header>
+                <dl class="insight-summary__details">
+                  <div>
+                    <dt>Account opened</dt>
+                    <dd>{% if insight.is_open %}{{ insight.opened }}{% else %}Pending account opening{% endif %}</dd>
+                  </div>
+                  <div>
+                    <dt>Next anchor date</dt>
+                    <dd>{{ insight.next_anchor }}</dd>
+                  </div>
+                  <div>
+                    <dt>Minimum balance</dt>
+                    <dd>{{ insight.minimum_balance }}</dd>
+                  </div>
+                  <div>
+                    <dt>Fee if below</dt>
+                    <dd>{{ insight.fee }}</dd>
+                  </div>
+                </dl>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="insight-panel" aria-label="Savings interest outlook">
+          <header class="insight-panel__header">
+            <h2>Interest outlook</h2>
+            <p>
+              Understand how {{ account_insights.savings.apy_rate }} grows your savings and when the next payout is expected.
+            </p>
+          </header>
+          <div class="insight-apy">
+            {% if account_insights.savings.is_open %}
+              <p class="insight-apy__headline">
+                Maintain the current balance to earn <strong>{{ account_insights.savings.projected_interest }}</strong>
+                on {{ account_insights.savings.next_anchor }}.
+              </p>
+              <p class="insight-apy__note">
+                Interest posts on the anchor date and compounds automatically. Deposits before that day increase the payout.
+              </p>
+            {% else %}
+              <p class="insight-apy__headline">
+                Open the savings account to start compounding at {{ account_insights.savings.apy_rate }}.
+              </p>
+              <p class="insight-apy__note">
+                Meeting the opening deposit unlocks the interest schedule and begins tracking growth immediately.
+              </p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="insight-panel" aria-label="Due date guidance">
+          <header class="insight-panel__header">
+            <h2>Due date guidance</h2>
+            <p>Review how to avoid service charges and keep each account compliant ahead of the anchor date.</p>
+          </header>
+          <div class="insight-due-grid">
+            {% for due in account_insights.due_items %}
+              <article class="insight-due-card">
+                <header>
+                  <h3>{{ due.name }}</h3>
+                  <span class="insight-due-label">Amount Due</span>
+                </header>
+                <p class="insight-due-amount">{{ due.amount }}</p>
+                <p class="insight-due-date">{{ due.due_date }}</p>
+                <p class="insight-due-tip">{{ due.tip }}</p>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
       </div>
     </section>
   </div>

@@ -12,6 +12,7 @@ from ..logging_service import log_manager
 from . import bp
 from .models import BankAccount, BankTransaction
 from .services import (
+    build_account_due_items,
     build_account_insights,
     build_banking_state,
     ensure_bank_defaults,
@@ -163,6 +164,11 @@ def home():
     accounts = fetch_accounts()
     _log_cash_health(accounts)
 
+    account_due_cards = build_account_due_items(settings, accounts)
+    has_open_accounts = any(
+        account.slug in {"checking", "savings"} for account in accounts
+    )
+
     log_manager.record(
         component="Banking",
         action="view-home",
@@ -185,6 +191,8 @@ def home():
         "banking/home.html",
         title="Lifesim — Banking Home",
         accounts=serialized_accounts,
+        has_open_accounts=has_open_accounts,
+        account_due_cards=account_due_cards,
         recent_transactions=serialized_transactions,
         has_more_transactions=has_more_transactions,
         bank_settings=settings,
@@ -310,6 +318,157 @@ def transfer():
         bank_settings=settings,
         active_nav="banking",
         active_banking_tab="transfer",
+    )
+
+
+@bp.post("/api/accounts/open")
+def api_open_accounts():
+    """Create new banking accounts with an initial deposit from cash."""
+
+    ensure_bank_defaults()
+    settings = get_bank_settings()
+    accounts = fetch_accounts()
+    cash_account = next((account for account in accounts if account.slug == "hand"), None)
+
+    if not cash_account:
+        return _json_error("Cash account is unavailable. Try again later.", status=500)
+
+    payload = request.get_json(silent=True) or {}
+    requested_accounts = payload.get("accounts")
+
+    if not isinstance(requested_accounts, dict):
+        return _json_error("Select at least one account to open.")
+
+    account_configs = {
+        "checking": {
+            "name": "Checking Account",
+            "category": "Checking",
+            "minimum_deposit": settings.checking_opening_deposit,
+        },
+        "savings": {
+            "name": "Savings Account",
+            "category": "Savings",
+            "minimum_deposit": settings.savings_opening_deposit,
+        },
+    }
+
+    selections: list[tuple[str, Decimal]] = []
+    errors: list[str] = []
+
+    for slug, config in account_configs.items():
+        if slug not in requested_accounts:
+            continue
+
+        if find_account(slug):
+            errors.append(f"{config['name']} is already open.")
+            continue
+
+        raw_deposit = (requested_accounts.get(slug) or {}).get("deposit")
+        try:
+            deposit_amount = quantize_amount(raw_deposit)
+        except (ValueError, TypeError):
+            errors.append(f"Provide a valid deposit for the {config['name'].lower()}.")
+            continue
+
+        minimum_required = quantize_amount(config["minimum_deposit"])
+        if deposit_amount < minimum_required:
+            errors.append(
+                f"Deposit at least {format_currency(minimum_required)} to open the {config['name'].lower()}."
+            )
+            continue
+
+        if deposit_amount <= 0:
+            errors.append(f"Deposit a positive amount for the {config['name'].lower()}.")
+            continue
+
+        selections.append((slug, deposit_amount))
+
+    if errors:
+        return _json_error(" ".join(errors))
+
+    if not selections:
+        return _json_error("Choose an account to open and include a starting deposit.")
+
+    total_deposit = sum(amount for _, amount in selections)
+    if total_deposit > cash_account.balance:
+        available = format_currency(cash_account.balance)
+        return _json_error(
+            f"Cash only has {available} available. Lower the deposits before opening accounts."
+        )
+
+    created_accounts: list[BankAccount] = []
+    try:
+        for slug, amount in selections:
+            config = account_configs[slug]
+            account = BankAccount(
+                slug=slug,
+                name=config["name"],
+                category=config["category"],
+                balance=amount,
+            )
+            db.session.add(account)
+            db.session.flush()
+            db.session.add(
+                BankTransaction(
+                    account=account,
+                    name="Initial Deposit",
+                    description=f"Opening deposit for {config['name']}",
+                    direction="credit",
+                    amount=amount,
+                )
+            )
+            created_accounts.append(account)
+
+        cash_account.balance = quantize_amount(cash_account.balance - total_deposit)
+        db.session.add(cash_account)
+        db.session.commit()
+    except SQLAlchemyError as exc:
+        db.session.rollback()
+        log_manager.record(
+            component="Banking",
+            action="open-account",
+            level="error",
+            result="error",
+            title="Account opening failed",
+            user_summary="The new accounts could not be created.",
+            technical_details=f"banking.api_open_accounts encountered {exc.__class__.__name__}: {exc}",
+        )
+        return _json_error("Unable to open accounts right now. Please try again shortly.", status=500)
+
+    created_labels = ", ".join(account.name for account in created_accounts)
+
+    log_manager.record(
+        component="Banking",
+        action="open-account",
+        level="info",
+        result="success",
+        title="Bank accounts opened",
+        user_summary=f"Opened {created_labels} with {format_currency(total_deposit)} in deposits.",
+        technical_details=(
+            "banking.api_open_accounts created deposit accounts, recorded opening transactions, and "
+            "decremented cash reserves."
+        ),
+    )
+
+    refreshed_accounts = fetch_accounts()
+    _log_cash_health(refreshed_accounts)
+
+    serialized = [
+        _serialize_account(account)
+        for account in refreshed_accounts
+        if account.slug not in {"hand"}
+    ]
+    response_message = (
+        f"Opened {created_labels} with {format_currency(total_deposit)} transferred from cash."
+    )
+
+    return _json_response(
+        {
+            "success": True,
+            "message": response_message,
+            "accounts": serialized,
+            "cash_balance": format_currency(cash_account.balance),
+        }
     )
 
 
@@ -755,8 +914,10 @@ def _handle_settings_update(settings) -> dict[str, str]:
     interest_raw = request.form.get("savings_interest_rate")
     checking_min_balance_raw = request.form.get("checking_minimum_balance")
     checking_min_fee_raw = request.form.get("checking_minimum_fee")
+    checking_opening_raw = request.form.get("checking_opening_deposit")
     savings_min_balance_raw = request.form.get("savings_minimum_balance")
     savings_min_fee_raw = request.form.get("savings_minimum_fee")
+    savings_opening_raw = request.form.get("savings_opening_deposit")
 
     errors: list[str] = []
 
@@ -811,6 +972,22 @@ def _handle_settings_update(settings) -> dict[str, str]:
         errors.append("Enter a valid, non-negative savings fee amount.")
         savings_minimum_fee = settings.savings_minimum_fee
 
+    try:
+        checking_opening_deposit = quantize_amount(checking_opening_raw)
+        if checking_opening_deposit < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative checking opening deposit.")
+        checking_opening_deposit = settings.checking_opening_deposit
+
+    try:
+        savings_opening_deposit = quantize_amount(savings_opening_raw)
+        if savings_opening_deposit < 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        errors.append("Enter a valid, non-negative savings opening deposit.")
+        savings_opening_deposit = settings.savings_opening_deposit
+
     if errors:
         return {"type": "error", "message": " ".join(errors)}
 
@@ -822,6 +999,8 @@ def _handle_settings_update(settings) -> dict[str, str]:
         settings.checking_minimum_fee = checking_minimum_fee
         settings.savings_minimum_balance = savings_minimum_balance
         settings.savings_minimum_fee = savings_minimum_fee
+        settings.checking_opening_deposit = checking_opening_deposit
+        settings.savings_opening_deposit = savings_opening_deposit
         db.session.add(settings)
         db.session.commit()
     except SQLAlchemyError as exc:
@@ -846,7 +1025,9 @@ def _handle_settings_update(settings) -> dict[str, str]:
         user_summary=(
             f"Bank renamed to {bank_name} with fee {format_currency(fee_amount)}, interest {interest_rate:.3f}%"
             f", checking minimum {format_currency(checking_minimum_balance)} ({format_currency(checking_minimum_fee)} fee)"
-            f", savings minimum {format_currency(savings_minimum_balance)} ({format_currency(savings_minimum_fee)} fee)."
+            f", savings minimum {format_currency(savings_minimum_balance)} ({format_currency(savings_minimum_fee)} fee)"
+            f", checking opening deposit {format_currency(checking_opening_deposit)}"
+            f", savings opening deposit {format_currency(savings_opening_deposit)}."
         ),
         technical_details="banking._handle_settings_update committed new configuration values.",
     )
