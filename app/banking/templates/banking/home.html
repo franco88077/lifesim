@@ -19,20 +19,22 @@
         >
           Banking Home
         </a>
-        <a
-          href="{{ url_for('banking.insights') }}"
-          class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
-          {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
-        >
-          Account Insights
-        </a>
-        <a
-          href="{{ url_for('banking.transfer') }}"
-          class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
-          {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
-        >
-          Banking Transfer
-        </a>
+        {% if has_bank_accounts %}
+          <a
+            href="{{ url_for('banking.insights') }}"
+            class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
+            {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
+          >
+            Account Insights
+          </a>
+          <a
+            href="{{ url_for('banking.transfer') }}"
+            class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
+            {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
+          >
+            Banking Transfer
+          </a>
+        {% endif %}
         <a
           href="{{ url_for('banking.settings') }}"
           class="banking-tab{% if active_banking_tab == 'settings' %} is-active{% endif %}"
@@ -75,80 +77,79 @@
         </section>
       {% endif %}
 
-      <section class="account-activity" aria-label="Account activity">
-        <div class="account-activity__grid">
-          <div class="account-activity__transactions" aria-label="Recent transactions">
-            <h3>Recent Transactions</h3>
-            {% if recent_transactions %}
-              <ul class="transaction-list">
-                {% for transaction in recent_transactions %}
-                  <li class="transaction-list__item" data-direction="{{ transaction.direction }}">
-                    <div class="transaction-list__row">
-                      <span class="transaction-list__name">{{ transaction.name }}</span>
-                      <span class="transaction-list__amount">{{ transaction.amount_display }}</span>
-                    </div>
-                    <p class="transaction-list__meta">{{ transaction.account_name }} · {{ transaction.timestamp }}</p>
-                    <p class="transaction-list__description">{{ transaction.description }}</p>
-                  </li>
-                {% endfor %}
-              </ul>
-              {% if has_more_transactions %}
-                <span
-                  class="transaction-view-more"
-                  role="link"
-                  tabindex="0"
-                  data-view-more="{{ url_for('banking.transactions') }}"
-                >
-                  View more
-                </span>
+      {% if has_bank_accounts %}
+        <section class="account-activity" aria-label="Account activity">
+          <div class="account-activity__grid">
+            <div class="account-activity__transactions" aria-label="Recent transactions">
+              <h3>Recent Transactions</h3>
+              {% if recent_transactions %}
+                <ul class="transaction-list">
+                  {% for transaction in recent_transactions %}
+                    <li class="transaction-list__item" data-direction="{{ transaction.direction }}">
+                      <div class="transaction-list__row">
+                        <span class="transaction-list__name">{{ transaction.name }}</span>
+                        <span class="transaction-list__amount">{{ transaction.amount_display }}</span>
+                      </div>
+                      <p class="transaction-list__meta">{{ transaction.account_name }} · {{ transaction.timestamp }}</p>
+                      <p class="transaction-list__description">{{ transaction.description }}</p>
+                    </li>
+                  {% endfor %}
+                </ul>
+                {% if has_more_transactions %}
+                  <span
+                    class="transaction-view-more"
+                    role="link"
+                    tabindex="0"
+                    data-view-more="{{ url_for('banking.transactions') }}"
+                  >
+                    View more
+                  </span>
+                {% endif %}
+              {% else %}
+                <p class="transaction-list__empty">
+                  No transactions recorded yet. Transfers will appear here automatically.
+                </p>
               {% endif %}
-            {% else %}
-              <p class="transaction-list__empty">
-                No transactions recorded yet. Transfers will appear here automatically.
-              </p>
-            {% endif %}
-          </div>
-          <div class="account-activity__balances" aria-label="Account balances">
-            <h3>Account Balances</h3>
-            {% if not has_open_accounts %}
-              <p class="account-activity__empty">
-                No banking accounts are open yet. Use the Open Account action above to get started.
-              </p>
-            {% endif %}
-            <div class="account-grid">
-              {% for account in accounts %}
-                <article class="account-card" data-account-card data-account="{{ account.id }}">
-                  <header>
-                    {% if account.type %}
-                      <p class="account-card__type">{{ account.type }}</p>
-                    {% endif %}
-                    <h2>{{ account.name }}</h2>
-                  </header>
-                  <p class="account-card__balance">
-                    <span data-balance-value>{{ account.display_balance }}</span>
-                  </p>
-                </article>
-              {% endfor %}
             </div>
-            <section class="account-due" aria-label="Account due summary">
-              <h4>Account Due</h4>
-              <div class="account-due__grid">
-                {% for due in account_due_cards %}
-                  <article class="account-due__card">
+            <div class="account-activity__balances" aria-label="Account balances">
+              <h3>Account Balances</h3>
+              <div class="account-grid">
+                {% for account in accounts %}
+                  <article class="account-card" data-account-card data-account="{{ account.id }}">
                     <header>
-                      <h5>{{ due.name }}</h5>
-                      <span class="account-due__label">Amount Due</span>
+                      {% if account.type %}
+                        <p class="account-card__type">{{ account.type }}</p>
+                      {% endif %}
+                      <h2>{{ account.name }}</h2>
                     </header>
-                    <p class="account-due__amount">{{ due.amount }}</p>
-                    <p class="account-due__note">{{ due.due_date }}</p>
-                    <p class="account-due__tip">{{ due.tip }}</p>
+                    <p class="account-card__balance">
+                      <span data-balance-value>{{ account.display_balance }}</span>
+                    </p>
                   </article>
                 {% endfor %}
               </div>
-            </section>
+              {% if account_due_cards %}
+                <section class="account-due" aria-label="Account due summary">
+                  <h4>Account Due</h4>
+                  <div class="account-due__grid">
+                    {% for due in account_due_cards %}
+                      <article class="account-due__card">
+                        <header>
+                          <h5>{{ due.name }}</h5>
+                          <span class="account-due__label">Amount Due</span>
+                        </header>
+                        <p class="account-due__amount">{{ due.amount }}</p>
+                        <p class="account-due__note">{{ due.due_date }}</p>
+                        <p class="account-due__tip">{{ due.tip }}</p>
+                      </article>
+                    {% endfor %}
+                  </div>
+                </section>
+              {% endif %}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      {% endif %}
     </section>
 
     <div class="modal" id="account-opening-modal" role="dialog" aria-modal="true" aria-labelledby="account-opening-title" hidden>

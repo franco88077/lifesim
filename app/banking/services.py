@@ -444,6 +444,7 @@ def build_account_due_items(
     def build_open_account_due(
         *,
         name: str,
+        slug: str,
         deficit: Decimal,
         fee: Decimal,
         anchor: date | None,
@@ -453,6 +454,8 @@ def build_account_due_items(
 
         if deficit > Decimal("0.00"):
             return {
+                "slug": slug,
+                "is_open": True,
                 "name": name,
                 "amount": format_currency(fee),
                 "due_date": f"Fee posts on {formatted_anchor}",
@@ -466,6 +469,8 @@ def build_account_due_items(
             }
 
         return {
+            "slug": slug,
+            "is_open": True,
             "name": name,
             "amount": format_currency(Decimal("0.00")),
             "due_date": f"Review on {formatted_anchor}",
@@ -480,6 +485,7 @@ def build_account_due_items(
         due_items.append(
             build_open_account_due(
                 name="Checking Account",
+                slug="checking",
                 deficit=checking_deficit,
                 fee=checking_fee,
                 anchor=checking_anchor,
@@ -489,6 +495,8 @@ def build_account_due_items(
     else:
         due_items.append(
             {
+                "slug": "checking",
+                "is_open": False,
                 "name": "Checking Account",
                 "amount": format_currency(settings.checking_opening_deposit),
                 "due_date": "Schedule after opening",
@@ -503,6 +511,7 @@ def build_account_due_items(
         due_items.append(
             build_open_account_due(
                 name="Savings Account",
+                slug="savings",
                 deficit=savings_deficit,
                 fee=savings_fee,
                 anchor=savings_anchor,
@@ -512,6 +521,8 @@ def build_account_due_items(
     else:
         due_items.append(
             {
+                "slug": "savings",
+                "is_open": False,
                 "name": "Savings Account",
                 "amount": format_currency(settings.savings_opening_deposit),
                 "due_date": "Schedule after opening",
@@ -546,36 +557,48 @@ def build_account_insights(
             return "—"
         return value.strftime("%B %d, %Y")
 
-    insights: dict[str, Any] = {
-        "checking": {
-            "is_open": checking_account is not None,
-            "name": "Checking Account",
-            "balance": format_currency(checking_balance),
-            "opened": format_date(checking_account.created_at.date() if checking_account else None),
-            "next_anchor": format_date(
-                compute_next_anchor_date(settings.checking_anchor_day)
-            ),
-            "minimum_balance": format_currency(settings.checking_minimum_balance),
-            "fee": format_currency(settings.checking_minimum_fee),
-        },
-        "savings": {
-            "is_open": savings_account is not None,
-            "name": "Savings Account",
-            "balance": format_currency(savings_balance),
-            "opened": format_date(savings_account.created_at.date() if savings_account else None),
-            "next_anchor": format_date(
-                compute_next_anchor_date(settings.savings_anchor_day)
-            ),
-            "minimum_balance": format_currency(settings.savings_minimum_balance),
-            "fee": format_currency(settings.savings_minimum_fee),
-            "apy_rate": f"{decimal_to_number(settings.savings_interest_rate):.2f}% APY",
-            "projected_interest": format_currency(savings_interest),
-        },
+    checking_info = {
+        "slug": "checking",
+        "is_open": checking_account is not None,
+        "name": "Checking Account",
+        "balance": format_currency(checking_balance),
+        "opened": format_date(
+            checking_account.created_at.date() if checking_account else None
+        ),
+        "next_anchor": format_date(
+            compute_next_anchor_date(settings.checking_anchor_day)
+        ),
+        "minimum_balance": format_currency(settings.checking_minimum_balance),
+        "fee": format_currency(settings.checking_minimum_fee),
     }
 
-    insights["due_items"] = build_account_due_items(settings, accounts)
+    savings_info = {
+        "slug": "savings",
+        "is_open": savings_account is not None,
+        "name": "Savings Account",
+        "balance": format_currency(savings_balance),
+        "opened": format_date(
+            savings_account.created_at.date() if savings_account else None
+        ),
+        "next_anchor": format_date(
+            compute_next_anchor_date(settings.savings_anchor_day)
+        ),
+        "minimum_balance": format_currency(settings.savings_minimum_balance),
+        "fee": format_currency(settings.savings_minimum_fee),
+        "apy_rate": f"{decimal_to_number(settings.savings_interest_rate):.2f}% APY",
+        "projected_interest": format_currency(savings_interest),
+    }
 
-    return insights
+    due_items = [
+        item for item in build_account_due_items(settings, accounts) if item["is_open"]
+    ]
+
+    return {
+        "checking": checking_info,
+        "savings": savings_info,
+        "accounts": [checking_info, savings_info],
+        "due_items": due_items,
+    }
 
 
 def format_currency(amount: Decimal | float | str) -> str:
