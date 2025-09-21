@@ -14,10 +14,26 @@ class BankSettings(db.Model):
 
     id: int = db.Column(db.Integer, primary_key=True)
     bank_name: str = db.Column(db.String(120), nullable=False, default="Lifesim Bank")
-    standard_fee: Decimal = db.Column(db.Numeric(10, 2), nullable=False, default=Decimal("5.00"))
-    savings_interest_rate: Decimal = db.Column(
-        db.Numeric(5, 3), nullable=False, default=Decimal("2.100")
+    standard_fee: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("12.00")
     )
+    savings_interest_rate: Decimal = db.Column(
+        db.Numeric(5, 3), nullable=False, default=Decimal("2.000")
+    )
+    checking_minimum_balance: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("1500.00")
+    )
+    checking_minimum_fee: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("12.00")
+    )
+    checking_anchor_day: int = db.Column(db.Integer, nullable=False, default=25)
+    savings_minimum_balance: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("500.00")
+    )
+    savings_minimum_fee: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("5.00")
+    )
+    savings_anchor_day: int = db.Column(db.Integer, nullable=False, default=1)
     created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at: datetime = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False

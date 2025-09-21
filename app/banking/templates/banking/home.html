@@ -4,6 +4,10 @@
   <link rel="stylesheet" href="{{ url_for('banking.static', filename='styles/banking.css') }}" />
 {% endblock %}
 
+{% block extra_js %}
+  <script src="{{ url_for('banking.static', filename='js/banking_home.js') }}" defer></script>
+{% endblock %}
+
 {% block content %}
   <div class="banking-shell">
     <section class="banking-subnav" aria-label="Banking navigation">
@@ -67,6 +71,16 @@
                   </li>
                 {% endfor %}
               </ul>
+              {% if has_more_transactions %}
+                <span
+                  class="transaction-view-more"
+                  role="link"
+                  tabindex="0"
+                  data-view-more="{{ url_for('banking.transactions') }}"
+                >
+                  View more
+                </span>
+              {% endif %}
             {% else %}
               <p class="transaction-list__empty">
                 No transactions recorded yet. Transfers will appear here automatically.

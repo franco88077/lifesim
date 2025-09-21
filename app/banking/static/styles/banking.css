@@ -60,8 +60,8 @@
 .banking-overview,
 .settings-panel {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1.25rem;
+  border: 1px solid #dfe4ec;
+  border-radius: 1.05rem;
   padding: clamp(1.5rem, 4vw, 2.5rem);
   display: grid;
   gap: clamp(1.5rem, 3vw, 2.5rem);
@@ -98,15 +98,15 @@
 .account-activity__grid {
   display: grid;
   gap: clamp(1.5rem, 3vw, 2rem);
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   align-items: start;
 }
 
 .account-activity__transactions,
 .account-activity__balances {
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: 1.1rem;
+  background: #ffffff;
+  border: 1px solid #dfe4ec;
+  border-radius: 0.95rem;
   padding: clamp(1.25rem, 3vw, 1.75rem);
   display: grid;
   gap: clamp(1rem, 2vw, 1.5rem);
@@ -138,7 +138,7 @@
 }
 
 .transaction-list__item + .transaction-list__item {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid #dfe4ec;
 }
 
 .transaction-list__item:first-child {
@@ -191,6 +191,74 @@
   font-style: italic;
 }
 
+.transaction-view-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.85rem;
+  padding: 0.5rem 1.4rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  width: fit-content;
+  text-decoration: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.transaction-view-more:focus,
+.transaction-view-more:hover {
+  background: var(--accent-alt);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.transaction-view-more:focus-visible {
+  outline: 2px solid var(--accent-alt);
+  outline-offset: 2px;
+}
+
+.transaction-list--full {
+  max-height: none;
+}
+
+.pagination {
+  margin-top: 1.5rem;
+}
+
+.pagination ul {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+.pagination a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.pagination a:hover,
+.pagination a:focus {
+  color: var(--accent-alt);
+}
+
+.pagination span[aria-disabled="true"] {
+  color: var(--muted);
+  cursor: default;
+}
+
+.pagination__info {
+  color: var(--muted);
+  font-weight: 600;
+}
+
 @media (max-width: 980px) {
   .account-activity__grid {
     grid-template-columns: 1fr;
@@ -205,8 +273,8 @@
 
 .account-card {
   background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border: 1px solid #dfe4ec;
+  border-radius: 0.65rem;
   padding: clamp(1.1rem, 2.6vw, 1.5rem);
   display: grid;
   gap: 0.65rem;
@@ -262,9 +330,9 @@
 }
 
 .transfer-card {
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
+  background: #ffffff;
+  border: 1px solid #dfe4ec;
+  border-radius: 0.85rem;
   padding: clamp(1.25rem, 3vw, 1.75rem);
   display: grid;
   gap: 1rem;
@@ -286,6 +354,93 @@
   gap: 1rem;
 }
 
+.transfer-card--wide {
+  grid-column: 1 / -1;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.form-grid label span {
+  color: var(--text);
+}
+
+.form-grid__amount {
+  align-self: end;
+}
+
+.transfer-summary {
+  border: 1px solid #dfe4ec;
+  border-radius: 0.65rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  color: var(--muted);
+  line-height: 1.5;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.transfer-summary[data-state="warning"] {
+  background: rgba(185, 28, 28, 0.08);
+  border-color: rgba(185, 28, 28, 0.25);
+  color: var(--error);
+}
+
+.transfer-summary[data-state="ready"] {
+  background: rgba(21, 128, 61, 0.08);
+  border-color: rgba(21, 128, 61, 0.2);
+  color: var(--success);
+}
+
+.transfer-guidelines {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.transfer-guidelines[data-state="idle"] {
+  display: none;
+}
+
+.transfer-guideline {
+  border-left: 3px solid #dfe4ec;
+  padding-left: 0.75rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.transfer-requirements {
+  border-top: 1px solid #dfe4ec;
+  padding-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.transfer-requirements h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.transfer-requirements ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.5rem;
+  color: var(--muted);
+}
+
+.transfer-requirements strong {
+  color: var(--text);
+}
+
 .form-row {
   display: grid;
   gap: 0.4rem;
@@ -300,8 +455,8 @@
 .transfer-form select,
 .settings-form input,
 .settings-account-form input {
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  border: 1px solid #dfe4ec;
+  border-radius: 0.65rem;
   padding: 0.6rem 0.75rem;
   font: inherit;
   color: var(--text);
@@ -394,8 +549,8 @@
 
 .insight-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
+  border: 1px solid #dfe4ec;
+  border-radius: 0.85rem;
   padding: clamp(1rem, 2.5vw, 1.5rem);
   display: grid;
   gap: 0.85rem;
@@ -442,8 +597,8 @@
   display: grid;
   gap: 0.75rem;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1.25rem;
+  border: 1px solid #dfe4ec;
+  border-radius: 1.05rem;
   padding: clamp(1.5rem, 4vw, 2.25rem);
 }
 
@@ -464,7 +619,7 @@
 }
 
 .settings-alert {
-  border-radius: 1rem;
+  border-radius: 0.85rem;
   padding: 0.85rem 1.1rem;
   border: 1px solid transparent;
   font-weight: 600;
@@ -521,8 +676,8 @@
 
 .settings-account-card {
   background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
+  border: 1px solid #dfe4ec;
+  border-radius: 0.85rem;
   padding: clamp(1.25rem, 3vw, 1.75rem);
   display: grid;
   gap: 1rem;
