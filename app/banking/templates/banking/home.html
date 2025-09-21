@@ -115,7 +115,7 @@
               <h3>Account Balances</h3>
               <div class="account-grid">
                 {% for account in accounts %}
-                  <article class="account-card" data-account-card data-account="{{ account.id }}">
+                  <article class="account-card summary-card" data-account-card data-account="{{ account.id }}">
                     <header>
                       {% if account.type %}
                         <p class="account-card__type">{{ account.type }}</p>
@@ -133,7 +133,7 @@
                   <h4>Account Due</h4>
                   <div class="account-due__grid">
                     {% for due in account_due_cards %}
-                      <article class="account-due__card">
+                      <article class="account-due__card summary-card">
                         <header>
                           <h5 class="account-due__title">{{ due.name }}</h5>
                           <span class="account-due__label">Amount Due</span>

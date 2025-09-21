@@ -41,15 +41,15 @@
       </nav>
     </section>
 
-    <section class="settings-intro">
-      <header>
+    <section class="banking-overview" aria-label="Banking settings overview">
+      <header class="banking-overview__header">
         <h1>{{ bank_settings.bank_name }} — Banking Settings</h1>
         <p>
           Configure {{ bank_settings.bank_name }} by defining fees, savings interest, and how much money sits in each
           account.
         </p>
       </header>
-      <p class="settings-note">
+      <p class="banking-overview__note">
         All changes are logged for auditing, and the ledger will reflect new balances immediately.
       </p>
     </section>
@@ -261,7 +261,7 @@
         </header>
         <div class="settings-closure-grid">
           {% if can_close_all_accounts %}
-            <form method="post" class="settings-closure-card">
+            <form method="post" class="settings-closure-card summary-card">
               <input type="hidden" name="intent" value="close-accounts" />
               <input type="hidden" name="target" value="all" />
               <h3>Close All Accounts</h3>
@@ -278,7 +278,7 @@
             </form>
           {% endif %}
           {% if has_checking_account %}
-            <form method="post" class="settings-closure-card">
+            <form method="post" class="settings-closure-card summary-card">
               <input type="hidden" name="intent" value="close-accounts" />
               <input type="hidden" name="target" value="checking" />
               <h3>Close Checking Account</h3>
@@ -295,7 +295,7 @@
             </form>
           {% endif %}
           {% if has_savings_account %}
-            <form method="post" class="settings-closure-card">
+            <form method="post" class="settings-closure-card summary-card">
               <input type="hidden" name="intent" value="close-accounts" />
               <input type="hidden" name="target" value="savings" />
               <h3>Close Savings Account</h3>
@@ -322,7 +322,7 @@
       </header>
       <div class="settings-account-grid">
         {% for account in accounts %}
-          <article class="settings-account-card">
+          <article class="settings-account-card summary-card">
             <header>
               <h3>{{ account.name }}</h3>
               {% if account.type %}
