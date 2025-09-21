@@ -58,13 +58,14 @@
           {% for account in accounts %}
             <article class="account-card" data-account-card data-account="{{ account.id }}">
               <header>
-                <p class="account-card__type">{{ account.type }}</p>
+                {% if account.type %}
+                  <p class="account-card__type">{{ account.type }}</p>
+                {% endif %}
                 <h2>{{ account.name }}</h2>
               </header>
               <p class="account-card__balance">
                 <span data-balance-value>{{ account.display_balance }}</span>
               </p>
-              <p class="account-card__hint">Balances update instantly after each transfer.</p>
             </article>
           {% endfor %}
         </div>

@@ -119,7 +119,9 @@
           <article class="settings-account-card">
             <header>
               <h3>{{ account.name }}</h3>
-              <p class="settings-account-type">{{ account.type }}</p>
+              {% if account.type %}
+                <p class="settings-account-type">{{ account.type }}</p>
+              {% endif %}
             </header>
             <p class="settings-account-balance">Current balance: <strong>{{ account.display_balance }}</strong></p>
             <form method="post" class="settings-account-form">

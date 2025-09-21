@@ -1,5 +1,15 @@
 # Lifesim change log
 
+## 2025-09-24
+- **What**: Simplified the banking dashboard language, resized account tiles, and hardened transfer commits.
+- **How**: Replaced canned descriptions on the home and transfer templates, tightened typography in the
+  banking stylesheet, removed account category labels, and switched the transfer endpoints to commit updates
+  directly on the shared SQLAlchemy session.
+- **Why**: UI copy overstated instant syncing, the account headers appeared oversized, and deposits/withdrawals
+  occasionally failed due to nested transactions.
+- **Purpose**: Keeps messaging aligned with actual behavior, presents account names at a comfortable scale,
+  and ensures cash movements persist reliably without raising `InvalidRequestError`.
+
 ## 2025-09-23
 - **What**: Refined the banking transaction ledger with inline dividers and scaled down the account cards
   for cash, checking, and savings.
