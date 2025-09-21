@@ -1,0 +1,82 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('banking.static', filename='styles/banking.css') }}" />
+{% endblock %}
+
+{% block content %}
+  <div class="banking-shell">
+    <section class="banking-subnav" aria-label="Banking navigation">
+      <nav class="banking-tabs">
+        <a
+          href="{{ url_for('banking.home') }}"
+          class="banking-tab{% if active_banking_tab == 'home' %} is-active{% endif %}"
+          {% if active_banking_tab == 'home' %}aria-current="page"{% endif %}
+        >
+          Banking Home
+        </a>
+        <a
+          href="{{ url_for('banking.insights') }}"
+          class="banking-tab{% if active_banking_tab == 'insights' %} is-active{% endif %}"
+          {% if active_banking_tab == 'insights' %}aria-current="page"{% endif %}
+        >
+          Account Insights
+        </a>
+        <a
+          href="{{ url_for('banking.transfer') }}"
+          class="banking-tab{% if active_banking_tab == 'transfer' %} is-active{% endif %}"
+          {% if active_banking_tab == 'transfer' %}aria-current="page"{% endif %}
+        >
+          Banking Transfer
+        </a>
+        <a
+          href="{{ url_for('banking.settings') }}"
+          class="banking-tab{% if active_banking_tab == 'settings' %} is-active{% endif %}"
+          {% if active_banking_tab == 'settings' %}aria-current="page"{% endif %}
+        >
+          Banking Settings
+        </a>
+      </nav>
+    </section>
+
+    <section class="banking-overview" aria-label="Account insights">
+      <header class="banking-overview__header">
+        <h1>Lifesim — Banking Insights</h1>
+        <p>
+          Understand the fees, interest, and cash guidance powering {{ bank_settings.bank_name }} so you can plan
+          each transfer with confidence.
+        </p>
+      </header>
+      <div class="banking-insights">
+        <header>
+          <h2>Account insights and fees</h2>
+          <p>
+            Study the policies for each account before moving money. Staying ahead of fees protects your
+            long-term savings.
+          </p>
+        </header>
+        <div class="insight-grid">
+          {% for insight in account_insights %}
+            <article class="insight-card">
+              <h3>{{ insight.account }}</h3>
+              <ul class="insight-list">
+                {% for detail in insight.details %}
+                  <li class="insight-item">
+                    <span class="insight-label">{{ detail.label }}</span>
+                    <span class="insight-value">{{ detail.value }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </article>
+          {% endfor %}
+        </div>
+        <footer class="insight-footer">
+          <p>
+            Monitor balances weekly and rebalance through the transfer hub ahead of billing cycles. Captured
+            transactions double as an audit trail for every move.
+          </p>
+        </footer>
+      </div>
+    </section>
+  </div>
+{% endblock %}

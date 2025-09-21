@@ -1,11 +1,11 @@
 """Helper utilities for banking data management."""
 from __future__ import annotations
 
-from collections.abc import Iterable
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from ..extensions import db
 from .models import BankAccount, BankSettings, BankTransaction
@@ -13,7 +13,7 @@ from .models import BankAccount, BankSettings, BankTransaction
 DEFAULT_ACCOUNTS: tuple[dict[str, Any], ...] = (
     {
         "slug": "hand",
-        "name": "Money on Hand",
+        "name": "Cash",
         "category": "Liquid Cash",
         "balance": Decimal("280.50"),
     },
@@ -48,7 +48,7 @@ DEFAULT_TRANSACTIONS: tuple[dict[str, Any], ...] = (
     },
     {
         "name": "Cash Withdrawal",
-        "description": "Funds moved from Checking Account to cash on hand",
+        "description": "Funds moved from Checking Account to Cash",
         "amount": Decimal("150.00"),
         "direction": "debit",
         "account_slug": "checking",
@@ -91,7 +91,19 @@ def ensure_bank_defaults() -> BankSettings:
     accounts_by_slug = {account.slug: account for account in BankAccount.query.all()}
 
     for config in DEFAULT_ACCOUNTS:
-        if config["slug"] not in accounts_by_slug:
+        existing = accounts_by_slug.get(config["slug"])
+        if existing:
+            updated = False
+            if existing.name != config["name"]:
+                existing.name = config["name"]
+                updated = True
+            if existing.category != config["category"]:
+                existing.category = config["category"]
+                updated = True
+            if updated:
+                db.session.add(existing)
+                created = True
+        else:
             account = BankAccount(
                 slug=config["slug"],
                 name=config["name"],
@@ -129,6 +141,18 @@ def fetch_accounts() -> list[BankAccount]:
     return list(BankAccount.query.order_by(BankAccount.created_at.asc()).all())
 
 
+def fetch_recent_transactions(limit: int = 20) -> list[BankTransaction]:
+    """Return the most recent transactions including their related accounts."""
+
+    statement = (
+        select(BankTransaction)
+        .options(joinedload(BankTransaction.account))
+        .order_by(BankTransaction.created_at.desc())
+        .limit(limit)
+    )
+    return list(db.session.execute(statement).scalars().all())
+
+
 def build_banking_state(limit: int = 20) -> dict[str, Any]:
     """Return the structured state used by the transfer interface."""
 
@@ -141,15 +165,7 @@ def build_banking_state(limit: int = 20) -> dict[str, Any]:
         for account in accounts
     }
 
-    transactions = (
-        db.session.execute(
-            select(BankTransaction)
-            .order_by(BankTransaction.created_at.desc())
-            .limit(limit)
-        )
-        .scalars()
-        .all()
-    )
+    transactions = fetch_recent_transactions(limit)
 
     ledger = [
         {
@@ -177,7 +193,7 @@ def build_account_insights(settings: BankSettings) -> list[dict[str, Any]]:
 
     return [
         {
-            "account": "Money on Hand",
+            "account": "Cash",
             "details": [
                 {
                     "label": "Cash buffer",

@@ -53,9 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
       name: "Cash Withdrawal",
       describe: (source) => {
         if (!source) {
-          return "Funds moved from the selected account to cash on hand.";
-        }
-        return `Funds moved from ${getAccountLabel(source)} to cash on hand.`;
+      return "Funds moved from the selected account to cash.";
+    }
+    return `Funds moved from ${getAccountLabel(source)} to cash.`;
       },
       summaryElement: withdrawSummary,
     },
