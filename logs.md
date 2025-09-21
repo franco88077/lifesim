@@ -1,4 +1,14 @@
 # Lifesim change log
+## 2025-09-26
+- **What**: Introduced an account opening workflow, revamped banking insights, added due summaries, and ensured the bank
+  name is consistent across the app.
+- **How**: Added a modal on the home page to open checking or savings accounts with configurable deposits, created a
+  `/banking/api/accounts/open` endpoint, recalculated account due data, refreshed the insights template with structured
+  panels, extended settings with opening deposit requirements, and surfaced the bank name through the base layout context.
+- **Why**: Players now begin with only cash and need guidance to create accounts, plus clearer insight cards and due-date
+  messaging make it easier to understand obligations and interest earnings.
+- **Purpose**: Provides a professional banking experience that mirrors onboarding flows, keeps account requirements
+  obvious, and maintains branding cohesion from navigation through detailed reports.
 ## 2025-09-25
 - **What**: Rebuilt banking transfers into a unified source-to-destination flow, added a full ledger view, refreshed account
   insights with anchor date calculations, and tightened the dashboard styling.

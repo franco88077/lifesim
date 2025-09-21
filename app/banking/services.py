@@ -17,45 +17,11 @@ DEFAULT_ACCOUNTS: tuple[dict[str, Any], ...] = (
         "slug": "hand",
         "name": "Cash",
         "category": "",
-        "balance": Decimal("280.50"),
-    },
-    {
-        "slug": "checking",
-        "name": "Checking Account",
-        "category": "",
-        "balance": Decimal("5400.25"),
-    },
-    {
-        "slug": "savings",
-        "name": "Savings Account",
-        "category": "",
-        "balance": Decimal("8200.00"),
+        "balance": Decimal("500.00"),
     },
 )
 
-DEFAULT_TRANSACTIONS: tuple[dict[str, Any], ...] = (
-    {
-        "name": "Cash Allocation",
-        "description": "Wallet deposit into Checking Account",
-        "amount": Decimal("2650.00"),
-        "direction": "credit",
-        "account_slug": "checking",
-    },
-    {
-        "name": "Cash Allocation",
-        "description": "Wallet deposit into Savings Account",
-        "amount": Decimal("500.00"),
-        "direction": "credit",
-        "account_slug": "savings",
-    },
-    {
-        "name": "Cash Withdrawal",
-        "description": "Funds moved from Checking Account to Cash",
-        "amount": Decimal("150.00"),
-        "direction": "debit",
-        "account_slug": "checking",
-    },
-)
+DEFAULT_TRANSACTIONS: tuple[dict[str, Any], ...] = ()
 
 
 def ensure_bank_settings_schema() -> None:
@@ -95,6 +61,14 @@ def ensure_bank_settings_schema() -> None:
     queue(
         "savings_anchor_day",
         "ALTER TABLE bank_settings ADD COLUMN savings_anchor_day INTEGER NOT NULL DEFAULT 1",
+    )
+    queue(
+        "checking_opening_deposit",
+        "ALTER TABLE bank_settings ADD COLUMN checking_opening_deposit NUMERIC(10, 2) NOT NULL DEFAULT 100.00",
+    )
+    queue(
+        "savings_opening_deposit",
+        "ALTER TABLE bank_settings ADD COLUMN savings_opening_deposit NUMERIC(10, 2) NOT NULL DEFAULT 50.00",
     )
 
     if not alterations:
@@ -146,6 +120,8 @@ def ensure_bank_defaults() -> BankSettings:
         ("savings_minimum_balance", Decimal("500.00")),
         ("savings_minimum_fee", Decimal("5.00")),
         ("savings_anchor_day", 1),
+        ("checking_opening_deposit", Decimal("100.00")),
+        ("savings_opening_deposit", Decimal("50.00")),
     )
 
     for attribute, default_value in defaults:
@@ -179,7 +155,9 @@ def ensure_bank_defaults() -> BankSettings:
             accounts_by_slug[account.slug] = account
             changed = True
 
-    if BankTransaction.query.count() == 0:
+    # Remove any pre-seeded transactions when the ledger is empty to reflect the
+    # new onboarding flow where accounts begin closed.
+    if BankTransaction.query.count() == 0 and DEFAULT_TRANSACTIONS:
         for entry in DEFAULT_TRANSACTIONS:
             account = accounts_by_slug.get(entry["account_slug"])
             if not account:
@@ -311,11 +289,13 @@ def build_banking_state(
                 "minimum_balance": decimal_to_number(settings.checking_minimum_balance),
                 "fee": decimal_to_number(settings.checking_minimum_fee),
                 "anchor_day": settings.checking_anchor_day,
+                "opening_deposit": decimal_to_number(settings.checking_opening_deposit),
             },
             "savings": {
                 "minimum_balance": decimal_to_number(settings.savings_minimum_balance),
                 "fee": decimal_to_number(settings.savings_minimum_fee),
                 "anchor_day": settings.savings_anchor_day,
+                "opening_deposit": decimal_to_number(settings.savings_opening_deposit),
             },
         }
 
@@ -392,93 +372,130 @@ def estimate_interest_payout(
     return quantize_amount(interest)
 
 
-def build_account_insights(
+def build_account_due_items(
     settings: BankSettings, accounts: Iterable[BankAccount]
-) -> list[dict[str, Any]]:
-    """Construct insight content for the overview page."""
+) -> list[dict[str, str]]:
+    """Return due amount guidance for checking and savings accounts."""
 
-    account_balances = {account.slug: account.balance for account in accounts}
-    savings_balance = account_balances.get("savings", Decimal("0"))
+    account_lookup = {account.slug: account for account in accounts}
+    checking_account = account_lookup.get("checking")
+    savings_account = account_lookup.get("savings")
+
+    checking_balance = checking_account.balance if checking_account else Decimal("0.00")
+    savings_balance = savings_account.balance if savings_account else Decimal("0.00")
 
     checking_anchor = compute_next_anchor_date(settings.checking_anchor_day)
     savings_anchor = compute_next_anchor_date(settings.savings_anchor_day)
-    savings_interest = estimate_interest_payout(
-        savings_balance, settings.savings_interest_rate, settings.savings_anchor_day
-    )
-    checking_anchor_day_display = ordinal(settings.checking_anchor_day)
-    savings_anchor_day_display = ordinal(settings.savings_anchor_day)
 
-    checking_minimum_display = format_currency(settings.checking_minimum_balance)
-    checking_fee_display = format_currency(settings.checking_minimum_fee)
-    savings_minimum_display = format_currency(settings.savings_minimum_balance)
-    savings_fee_display = format_currency(settings.savings_minimum_fee)
-    interest_display = format_currency(savings_interest)
-    apy_display = f"{decimal_to_number(settings.savings_interest_rate):.2f}% APY"
+    checking_due_amount = (
+        quantize_amount(
+            max(settings.checking_minimum_balance - checking_balance, Decimal("0.00"))
+        )
+        if checking_account
+        else quantize_amount(settings.checking_opening_deposit)
+    )
+    savings_due_amount = (
+        quantize_amount(
+            max(settings.savings_minimum_balance - savings_balance, Decimal("0.00"))
+        )
+        if savings_account
+        else quantize_amount(settings.savings_opening_deposit)
+    )
+
+    def format_date(value: date | None) -> str:
+        if not value:
+            return "—"
+        return value.strftime("%B %d, %Y")
 
     return [
         {
-            "account": "Cash",
-            "details": [
-                {
-                    "label": "Liquidity guidance",
-                    "value": "Hold a flexible cushion for impulse purchases; cash activity is kept off the ledger for clarity.",
-                },
-                {
-                    "label": "Reconciliation",
-                    "value": "Document cash spends manually so deposits back to checking remain accurate.",
-                },
-            ],
+            "name": "Checking Account",
+            "amount": format_currency(checking_due_amount),
+            "due_date": (
+                f"Due on {format_date(checking_anchor)}"
+                if checking_account
+                else "Schedule after opening"
+            ),
+            "tip": (
+                "Keep the balance at or above the minimum to avoid the service fee."
+                if checking_account
+                else (
+                    "Open the checking account with at least "
+                    f"{format_currency(settings.checking_opening_deposit)} to start tracking reviews."
+                )
+            ),
         },
         {
-            "account": "Checking Account",
-            "details": [
-                {
-                    "label": "Anchor date",
-                    "value": (
-                        f"{checking_anchor:%b %d, %Y} — monthly service review posts; if the"
-                        f" {checking_anchor_day_display} is missing in a month, the evaluation runs on the final day."
-                    ),
-                },
-                {
-                    "label": "Next evaluation",
-                    "value": (
-                        f"Maintain at least {checking_minimum_display}; otherwise a {checking_fee_display} fee applies"
-                        " on the anchor date."
-                    ),
-                },
-                {
-                    "label": "Cash flow tip",
-                    "value": "Route bill payments here to keep savings untouched and rebuild cash with targeted transfers.",
-                },
-            ],
-        },
-        {
-            "account": "Savings Account",
-            "details": [
-                {
-                    "label": "Anchor date",
-                    "value": (
-                        f"{savings_anchor:%b %d, %Y} — accrued interest credits and the cycle resets; if the"
-                        f" {savings_anchor_day_display} does not occur in the month, interest posts on the last day."
-                    ),
-                },
-                {
-                    "label": "Projected payout",
-                    "value": (
-                        f"Interest accrues daily at {apy_display}; expect {interest_display} on the next anchor date"
-                        " if the balance holds steady."
-                    ),
-                },
-                {
-                    "label": "Balance requirements",
-                    "value": (
-                        f"Keep at least {savings_minimum_display}; falling short can trigger a {savings_fee_display}"
-                        " maintenance fee."
-                    ),
-                },
-            ],
+            "name": "Savings Account",
+            "amount": format_currency(savings_due_amount),
+            "due_date": (
+                f"Due on {format_date(savings_anchor)}"
+                if savings_account
+                else "Schedule after opening"
+            ),
+            "tip": (
+                "Maintain the minimum balance so the maintenance fee never posts."
+                if savings_account
+                else (
+                    "Open the savings account with at least "
+                    f"{format_currency(settings.savings_opening_deposit)} to begin earning interest."
+                )
+            ),
         },
     ]
+
+
+def build_account_insights(
+    settings: BankSettings, accounts: Iterable[BankAccount]
+) -> dict[str, Any]:
+    """Construct insight content for a professional overview layout."""
+
+    account_lookup = {account.slug: account for account in accounts}
+    checking_account = account_lookup.get("checking")
+    savings_account = account_lookup.get("savings")
+
+    checking_balance = checking_account.balance if checking_account else Decimal("0.00")
+    savings_balance = savings_account.balance if savings_account else Decimal("0.00")
+
+    savings_interest = estimate_interest_payout(
+        savings_balance, settings.savings_interest_rate, settings.savings_anchor_day
+    )
+
+    def format_date(value: date | None) -> str:
+        if not value:
+            return "—"
+        return value.strftime("%B %d, %Y")
+
+    insights: dict[str, Any] = {
+        "checking": {
+            "is_open": checking_account is not None,
+            "name": "Checking Account",
+            "balance": format_currency(checking_balance),
+            "opened": format_date(checking_account.created_at.date() if checking_account else None),
+            "next_anchor": format_date(
+                compute_next_anchor_date(settings.checking_anchor_day)
+            ),
+            "minimum_balance": format_currency(settings.checking_minimum_balance),
+            "fee": format_currency(settings.checking_minimum_fee),
+        },
+        "savings": {
+            "is_open": savings_account is not None,
+            "name": "Savings Account",
+            "balance": format_currency(savings_balance),
+            "opened": format_date(savings_account.created_at.date() if savings_account else None),
+            "next_anchor": format_date(
+                compute_next_anchor_date(settings.savings_anchor_day)
+            ),
+            "minimum_balance": format_currency(settings.savings_minimum_balance),
+            "fee": format_currency(settings.savings_minimum_fee),
+            "apy_rate": f"{decimal_to_number(settings.savings_interest_rate):.2f}% APY",
+            "projected_interest": format_currency(savings_interest),
+        },
+    }
+
+    insights["due_items"] = build_account_due_items(settings, accounts)
+
+    return insights
 
 
 def format_currency(amount: Decimal | float | str) -> str:

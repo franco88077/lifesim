@@ -34,6 +34,12 @@ class BankSettings(db.Model):
         db.Numeric(10, 2), nullable=False, default=Decimal("5.00")
     )
     savings_anchor_day: int = db.Column(db.Integer, nullable=False, default=1)
+    checking_opening_deposit: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("100.00")
+    )
+    savings_opening_deposit: Decimal = db.Column(
+        db.Numeric(10, 2), nullable=False, default=Decimal("50.00")
+    )
     created_at: datetime = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at: datetime = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
