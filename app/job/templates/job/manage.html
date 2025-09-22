@@ -1,0 +1,154 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('job.static', filename='styles/job.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('job.static', filename='js/job.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <div class="job-shell" data-job-shell>
+    <section class="job-subnav" aria-label="Job navigation">
+      <nav class="job-tabs">
+        <a
+          href="{{ url_for('job.listings') }}"
+          class="job-tab{% if active_job_tab == 'listings' %} is-active{% endif %}"
+        >
+          Job Listings
+        </a>
+        <a
+          href="{{ url_for('job.manage') }}"
+          class="job-tab{% if active_job_tab == 'manage' %} is-active{% endif %}"
+          aria-current="page"
+        >
+          Manage Jobs
+        </a>
+        <a
+          href="{{ url_for('job.job_settings') }}"
+          class="job-tab{% if active_job_tab == 'settings' %} is-active{% endif %}"
+        >
+          Job Settings
+        </a>
+      </nav>
+    </section>
+
+    <section class="job-admin" aria-label="Manage job listings">
+      <header class="job-admin__header">
+        <h1 data-job-form-heading>Create a job</h1>
+        <p>
+          Add hourly work or task-based gigs to expand the opportunities available in your simulation.
+        </p>
+      </header>
+
+      <div class="job-admin__grid">
+        <form class="job-form" data-job-form novalidate>
+          <div class="job-form__message" data-job-form-message aria-live="polite"></div>
+          <label class="job-form__field">
+            <span>Job title</span>
+            <input type="text" name="title" required maxlength="80" />
+          </label>
+
+          <label class="job-form__field">
+            <span>Description</span>
+            <textarea name="description" rows="4" required></textarea>
+          </label>
+
+          <fieldset class="job-form__fieldset">
+            <legend>Pay type</legend>
+            <label class="job-form__option">
+              <input type="radio" name="pay_type" value="time" checked />
+              <span>Time-based (hourly)</span>
+            </label>
+            <label class="job-form__option">
+              <input type="radio" name="pay_type" value="task" />
+              <span>Task-based (per completion)</span>
+            </label>
+          </fieldset>
+
+          <label class="job-form__field" data-rate-field>
+            <span data-rate-label>Hourly rate</span>
+            <div class="job-form__input-group">
+              <span class="job-form__prefix">$</span>
+              <input type="number" name="pay_rate" step="0.25" min="{{ settings.minimum_hourly_wage }}" data-rate-input required />
+              <span class="job-form__suffix" data-rate-suffix>per hour</span>
+            </div>
+            <p class="job-form__hint" data-minimum-note>
+              This rate must meet the minimum wage of {{ settings.minimum_hourly_wage_display }}.
+            </p>
+          </label>
+
+          <label class="job-form__field">
+            <span>Daily limit</span>
+            <input
+              type="number"
+              name="daily_limit"
+              min="1"
+              placeholder="{{ settings.default_daily_limit }}"
+              data-daily-limit
+            />
+            <p class="job-form__hint">Leave blank for unlimited completions per day.</p>
+          </label>
+
+          <div class="job-form__actions">
+            <button type="submit" data-job-submit>Create job</button>
+            <button type="button" data-job-cancel class="job-form__cancel" hidden>Cancel edit</button>
+          </div>
+        </form>
+
+        <div class="job-admin__list" data-job-admin-list>
+          {% if jobs %}
+            {% for job in jobs %}
+              <article class="job-admin-card" data-job-card data-job-id="{{ job.id }}">
+                <header class="job-admin-card__header">
+                  <div>
+                    <h3>{{ job.title }}</h3>
+                    <span class="job-tag">{{ job.pay_type_label }}</span>
+                  </div>
+                  <span class="job-admin-card__status job-admin-card__status--{{ job.status }}">{{ job.status_label }}</span>
+                </header>
+                <p class="job-admin-card__description">{{ job.description }}</p>
+                <dl class="job-admin-card__meta">
+                  <div>
+                    <dt>Pay</dt>
+                    <dd>{{ job.rate_display }}</dd>
+                  </div>
+                  <div>
+                    <dt>Daily limit</dt>
+                    <dd>{{ job.daily_limit_display }}</dd>
+                  </div>
+                  <div>
+                    <dt>Remaining today</dt>
+                    <dd>{{ job.remaining_display }}</dd>
+                  </div>
+                </dl>
+                <footer class="job-admin-card__actions">
+                  <button type="button" data-job-edit>Edit</button>
+                  <button type="button" data-job-delete class="danger">Remove</button>
+                </footer>
+              </article>
+            {% endfor %}
+          {% else %}
+            <p class="job-admin__empty" data-job-empty>No jobs have been added yet.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <aside class="job-admin__help">
+        <h2>Tips for configuring jobs</h2>
+        <ul>
+          <li>Time-based roles automatically respect the minimum wage defined in Job Settings.</li>
+          <li data-reset-label>
+            Daily limits refresh at <span data-reset-text>{{ settings.daily_reset_label }}</span>. Use limits to pace progression.
+          </li>
+          <li>Give every listing a clear description so you remember what work needs to be done.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <script type="application/json" id="job-initial-data">{{ jobs | tojson }}</script>
+    <script type="application/json" id="job-settings-data">{{ settings | tojson }}</script>
+  </div>
+{% endblock %}
+
