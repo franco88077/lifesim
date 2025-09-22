@@ -52,296 +52,306 @@
       <p class="banking-overview__note">
         All changes are logged for auditing, and the ledger will reflect new balances immediately.
       </p>
-    </section>
 
-    {% if feedback %}
-      <div class="settings-alert settings-alert--{{ feedback.type }}" role="status">
-        {{ feedback.message }}
-      </div>
-    {% endif %}
-
-    <section class="settings-panel" aria-label="Bank configuration">
-      <header>
-        <h2>Bank Configuration</h2>
-        <p>Align {{ bank_settings.bank_name }} policies, thresholds, and closure fees.</p>
-      </header>
-
-      <form method="post" class="settings-form">
-        <input type="hidden" name="intent" value="update-settings" />
-
-        <fieldset class="settings-fieldset">
-          <legend>Institution Identity</legend>
-          <div class="settings-grid settings-grid--paired">
-            <label>
-              <span>Bank — Display Name</span>
-              <input
-                type="text"
-                name="bank_name"
-                value="{{ bank_settings.bank_name }}"
-                required
-                maxlength="120"
-              />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="settings-fieldset">
-          <legend>Checking Policies</legend>
-          <div class="settings-grid settings-grid--paired">
-            <label>
-              <span>Checking — Minimum Balance Requirement</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="checking_minimum_balance"
-                  value="{{ '%.2f'|format(bank_settings.checking_minimum_balance) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-            <label>
-              <span>Checking — Fee When Below Minimum</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="checking_minimum_fee"
-                  value="{{ '%.2f'|format(bank_settings.checking_minimum_fee) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-            <label>
-              <span>Checking — Opening Deposit Requirement</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="checking_opening_deposit"
-                  value="{{ '%.2f'|format(bank_settings.checking_opening_deposit) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-            <label>
-              <span>Checking — Closure Fee</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="checking_closure_fee"
-                  value="{{ '%.2f'|format(bank_settings.checking_closure_fee) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="settings-fieldset">
-          <legend>Savings Policies</legend>
-          <div class="settings-grid settings-grid--paired">
-            <label>
-              <span>Savings — Minimum Balance Requirement</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="savings_minimum_balance"
-                  value="{{ '%.2f'|format(bank_settings.savings_minimum_balance) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-            <label>
-              <span>Savings — Fee When Below Minimum</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="savings_minimum_fee"
-                  value="{{ '%.2f'|format(bank_settings.savings_minimum_fee) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-            <label>
-              <span>Savings — Opening Deposit Requirement</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="savings_opening_deposit"
-                  value="{{ '%.2f'|format(bank_settings.savings_opening_deposit) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-            <label>
-              <span>Savings — Annual Percentage Yield (APY)</span>
-              <div class="settings-input">
-                <input
-                  type="number"
-                  name="savings_interest_rate"
-                  value="{{ '%.3f'|format(bank_settings.savings_interest_rate) }}"
-                  min="0"
-                  step="0.001"
-                  required
-                />
-                <span class="suffix">%</span>
-              </div>
-            </label>
-            <label>
-              <span>Savings — Closure Fee</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="savings_closure_fee"
-                  value="{{ '%.2f'|format(bank_settings.savings_closure_fee) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset class="settings-fieldset">
-          <legend>Bank Closure</legend>
-          <div class="settings-grid settings-grid--paired">
-            <label>
-              <span>Bank — All Accounts Closure Fee</span>
-              <div class="settings-input">
-                <span class="prefix">$</span>
-                <input
-                  type="number"
-                  name="bank_closure_fee"
-                  value="{{ '%.2f'|format(bank_settings.bank_closure_fee) }}"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </label>
-          </div>
-        </fieldset>
-
-        <button type="submit" class="settings-submit">Save bank settings</button>
-      </form>
-    </section>
-
-    {% set checking_account = account_lookup.get('checking') %}
-    {% set savings_account = account_lookup.get('savings') %}
-    {% set checking_is_closed = checking_account.is_closed if checking_account else False %}
-    {% set savings_is_closed = savings_account.is_closed if savings_account else False %}
-    {% set all_closed = checking_is_closed and savings_is_closed %}
-
-    {% if has_bank_accounts %}
-      <section class="settings-panel" aria-label="Account closures">
-        <header>
-          <h2>Account Closures</h2>
-          <p>Return account balances to cash and apply the configured closure fees automatically.</p>
-        </header>
-        <div class="settings-closure-grid">
-          {% if can_close_all_accounts %}
-            <form method="post" class="settings-closure-card summary-card">
-              <input type="hidden" name="intent" value="close-accounts" />
-              <input type="hidden" name="target" value="all" />
-              <h3>Close All Accounts</h3>
-              <p>
-                Move both checking and savings balances into cash. Closure fee:
-                ${{ '%.2f'|format(bank_settings.bank_closure_fee) }}.
-              </p>
-              <button type="submit" class="settings-closure-button" {% if all_closed %}disabled{% endif %}>
-                Close Bank Accounts
-              </button>
-              {% if all_closed %}
-                <p class="settings-closure-note">Checking and savings are already closed.</p>
-              {% endif %}
-            </form>
-          {% endif %}
-          {% if has_checking_account %}
-            <form method="post" class="settings-closure-card summary-card">
-              <input type="hidden" name="intent" value="close-accounts" />
-              <input type="hidden" name="target" value="checking" />
-              <h3>Close Checking Account</h3>
-              <p>
-                Transfer the checking balance to cash and charge a
-                ${{ '%.2f'|format(bank_settings.checking_closure_fee) }} closing fee.
-              </p>
-              <button type="submit" class="settings-closure-button" {% if checking_is_closed %}disabled{% endif %}>
-                Close Checking
-              </button>
-              {% if checking_is_closed %}
-                <p class="settings-closure-note">Checking is already closed.</p>
-              {% endif %}
-            </form>
-          {% endif %}
-          {% if has_savings_account %}
-            <form method="post" class="settings-closure-card summary-card">
-              <input type="hidden" name="intent" value="close-accounts" />
-              <input type="hidden" name="target" value="savings" />
-              <h3>Close Savings Account</h3>
-              <p>
-                Shift the savings balance into cash and apply a
-                ${{ '%.2f'|format(bank_settings.savings_closure_fee) }} closing fee.
-              </p>
-              <button type="submit" class="settings-closure-button" {% if savings_is_closed %}disabled{% endif %}>
-                Close Savings
-              </button>
-              {% if savings_is_closed %}
-                <p class="settings-closure-note">Savings is already closed.</p>
-              {% endif %}
-            </form>
-          {% endif %}
+      {% if feedback %}
+        <div class="settings-alert settings-alert--{{ feedback.type }}" role="status">
+          {{ feedback.message }}
         </div>
-      </section>
-    {% endif %}
+      {% endif %}
 
-    <section class="settings-panel" aria-label="Account balances">
-      <header>
-        <h2>Manage Account Balances</h2>
-        <p>Review balances across cash, checking, and savings. Closed accounts cannot be adjusted.</p>
-      </header>
-      <div class="settings-account-grid">
-        {% for account in accounts %}
-          <article class="settings-account-card summary-card">
-            <header>
-              <h3>{{ account.name }}</h3>
-              {% if account.type %}
-                <p class="settings-account-type">{{ account.type }}</p>
-              {% endif %}
-            </header>
-            <p class="settings-account-balance">Current balance: <strong>{{ account.display_balance }}</strong></p>
-            {% if account.is_closed and account.id != 'hand' %}
-              <p class="settings-account-status settings-account-status--closed">
-                Closed — reopen the account to manage balances.
-              </p>
-            {% else %}
-              <form method="post" class="settings-account-form">
-                <input type="hidden" name="account_id" value="{{ account.id }}" />
-                <label for="balance-{{ account.id }}">Set balance</label>
-                {% set show_currency_prefix = account.id in ['hand', 'checking', 'savings'] %}
-                {% if show_currency_prefix %}
-                  <div class="settings-account-input">
-                    <span class="settings-account-input__prefix" aria-hidden="true">$</span>
+      <section class="settings-panel" aria-label="Bank configuration">
+        <header>
+          <h2>Bank Configuration</h2>
+          <p>Align {{ bank_settings.bank_name }} policies, thresholds, and closure fees.</p>
+        </header>
+
+        <form method="post" class="settings-form">
+          <input type="hidden" name="intent" value="update-settings" />
+
+          <fieldset class="settings-fieldset">
+            <legend>Institution Identity</legend>
+            <div class="settings-grid settings-grid--paired">
+              <label>
+                <span>Bank — Display Name</span>
+                <input
+                  type="text"
+                  name="bank_name"
+                  value="{{ bank_settings.bank_name }}"
+                  required
+                  maxlength="120"
+                />
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="settings-fieldset">
+            <legend>Checking Policies</legend>
+            <div class="settings-grid settings-grid--paired">
+              <label>
+                <span>Checking — Minimum Balance Requirement</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="checking_minimum_balance"
+                    value="{{ '%.2f'|format(bank_settings.checking_minimum_balance) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+              <label>
+                <span>Checking — Fee When Below Minimum</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="checking_minimum_fee"
+                    value="{{ '%.2f'|format(bank_settings.checking_minimum_fee) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+              <label>
+                <span>Checking — Opening Deposit Requirement</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="checking_opening_deposit"
+                    value="{{ '%.2f'|format(bank_settings.checking_opening_deposit) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+              <label>
+                <span>Checking — Closure Fee</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="checking_closure_fee"
+                    value="{{ '%.2f'|format(bank_settings.checking_closure_fee) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="settings-fieldset">
+            <legend>Savings Policies</legend>
+            <div class="settings-grid settings-grid--paired">
+              <label>
+                <span>Savings — Minimum Balance Requirement</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="savings_minimum_balance"
+                    value="{{ '%.2f'|format(bank_settings.savings_minimum_balance) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+              <label>
+                <span>Savings — Fee When Below Minimum</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="savings_minimum_fee"
+                    value="{{ '%.2f'|format(bank_settings.savings_minimum_fee) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+              <label>
+                <span>Savings — Opening Deposit Requirement</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="savings_opening_deposit"
+                    value="{{ '%.2f'|format(bank_settings.savings_opening_deposit) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+              <label>
+                <span>Savings — Annual Percentage Yield (APY)</span>
+                <div class="settings-input">
+                  <input
+                    type="number"
+                    name="savings_interest_rate"
+                    value="{{ '%.3f'|format(bank_settings.savings_interest_rate) }}"
+                    min="0"
+                    step="0.001"
+                    required
+                  />
+                  <span class="suffix">%</span>
+                </div>
+              </label>
+              <label>
+                <span>Savings — Closure Fee</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="savings_closure_fee"
+                    value="{{ '%.2f'|format(bank_settings.savings_closure_fee) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset class="settings-fieldset">
+            <legend>Bank Closure</legend>
+            <div class="settings-grid settings-grid--paired">
+              <label>
+                <span>Bank — All Accounts Closure Fee</span>
+                <div class="settings-input">
+                  <span class="prefix">$</span>
+                  <input
+                    type="number"
+                    name="bank_closure_fee"
+                    value="{{ '%.2f'|format(bank_settings.bank_closure_fee) }}"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+              </label>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="settings-submit">Save bank settings</button>
+        </form>
+      </section>
+
+      {% set checking_account = account_lookup.get('checking') %}
+      {% set savings_account = account_lookup.get('savings') %}
+      {% set checking_is_closed = checking_account.is_closed if checking_account else False %}
+      {% set savings_is_closed = savings_account.is_closed if savings_account else False %}
+      {% set all_closed = checking_is_closed and savings_is_closed %}
+
+      {% if has_bank_accounts %}
+        <section class="settings-panel" aria-label="Account closures">
+          <header>
+            <h2>Account Closures</h2>
+            <p>Return account balances to cash and apply the configured closure fees automatically.</p>
+          </header>
+          <div class="settings-closure-grid">
+            {% if can_close_all_accounts %}
+              <form method="post" class="settings-closure-card summary-card">
+                <input type="hidden" name="intent" value="close-accounts" />
+                <input type="hidden" name="target" value="all" />
+                <h3>Close All Accounts</h3>
+                <p>
+                  Move both checking and savings balances into cash. Closure fee:
+                  ${{ '%.2f'|format(bank_settings.bank_closure_fee) }}.
+                </p>
+                <button type="submit" class="settings-closure-button" {% if all_closed %}disabled{% endif %}>
+                  Close Bank Accounts
+                </button>
+                {% if all_closed %}
+                  <p class="settings-closure-note">Checking and savings are already closed.</p>
+                {% endif %}
+              </form>
+            {% endif %}
+            {% if has_checking_account %}
+              <form method="post" class="settings-closure-card summary-card">
+                <input type="hidden" name="intent" value="close-accounts" />
+                <input type="hidden" name="target" value="checking" />
+                <h3>Close Checking Account</h3>
+                <p>
+                  Transfer the checking balance to cash and charge a
+                  ${{ '%.2f'|format(bank_settings.checking_closure_fee) }} closing fee.
+                </p>
+                <button type="submit" class="settings-closure-button" {% if checking_is_closed %}disabled{% endif %}>
+                  Close Checking
+                </button>
+                {% if checking_is_closed %}
+                  <p class="settings-closure-note">Checking is already closed.</p>
+                {% endif %}
+              </form>
+            {% endif %}
+            {% if has_savings_account %}
+              <form method="post" class="settings-closure-card summary-card">
+                <input type="hidden" name="intent" value="close-accounts" />
+                <input type="hidden" name="target" value="savings" />
+                <h3>Close Savings Account</h3>
+                <p>
+                  Shift the savings balance into cash and apply a
+                  ${{ '%.2f'|format(bank_settings.savings_closure_fee) }} closing fee.
+                </p>
+                <button type="submit" class="settings-closure-button" {% if savings_is_closed %}disabled{% endif %}>
+                  Close Savings
+                </button>
+                {% if savings_is_closed %}
+                  <p class="settings-closure-note">Savings is already closed.</p>
+                {% endif %}
+              </form>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="settings-panel" aria-label="Account balances">
+        <header>
+          <h2>Manage Account Balances</h2>
+          <p>Review balances across cash, checking, and savings. Closed accounts cannot be adjusted.</p>
+        </header>
+        <div class="settings-account-grid">
+          {% for account in accounts %}
+            <article class="settings-account-card summary-card">
+              <header>
+                <h3>{{ account.name }}</h3>
+                {% if account.type %}
+                  <p class="settings-account-type">{{ account.type }}</p>
+                {% endif %}
+              </header>
+              <p class="settings-account-balance">Current balance: <strong>{{ account.display_balance }}</strong></p>
+              {% if account.is_closed and account.id != 'hand' %}
+                <p class="settings-account-status settings-account-status--closed">
+                  Closed — reopen the account to manage balances.
+                </p>
+              {% else %}
+                <form method="post" class="settings-account-form">
+                  <input type="hidden" name="account_id" value="{{ account.id }}" />
+                  <label for="balance-{{ account.id }}">Set balance</label>
+                  {% set show_currency_prefix = account.id in ['hand', 'checking', 'savings'] %}
+                  {% if show_currency_prefix %}
+                    <div class="settings-account-input">
+                      <span class="settings-account-input__prefix" aria-hidden="true">$</span>
+                      <input
+                        id="balance-{{ account.id }}"
+                        type="number"
+                        name="amount"
+                        value="{{ '%.2f'|format(account.balance) }}"
+                        min="0"
+                        step="0.01"
+                        required
+                      />
+                    </div>
+                  {% else %}
                     <input
                       id="balance-{{ account.id }}"
                       type="number"
@@ -351,31 +361,21 @@
                       step="0.01"
                       required
                     />
+                  {% endif %}
+                  <div class="settings-account-actions">
+                    <button type="submit" name="intent" value="update-balance" class="settings-account-save">
+                      Save new amount
+                    </button>
+                    <button type="submit" name="intent" value="reset-balance" class="settings-account-reset">
+                      Reset to $0
+                    </button>
                   </div>
-                {% else %}
-                  <input
-                    id="balance-{{ account.id }}"
-                    type="number"
-                    name="amount"
-                    value="{{ '%.2f'|format(account.balance) }}"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
-                {% endif %}
-                <div class="settings-account-actions">
-                  <button type="submit" name="intent" value="update-balance" class="settings-account-save">
-                    Save new amount
-                  </button>
-                  <button type="submit" name="intent" value="reset-balance" class="settings-account-reset">
-                    Reset to $0
-                  </button>
-                </div>
-              </form>
-            {% endif %}
-          </article>
-        {% endfor %}
-      </div>
+                </form>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
     </section>
   </div>
 {% endblock %}
