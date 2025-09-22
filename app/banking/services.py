@@ -471,11 +471,7 @@ def build_account_due_items(
                 "amount": format_currency(fee),
                 "due_date": f"Fee posts on {formatted_anchor}",
                 "tip": (
-                    "Deposit {shortfall} before {anchor} to prevent the {fee} service fee."
-                ).format(
-                    shortfall=format_currency(deficit),
-                    anchor=formatted_anchor,
-                    fee=format_currency(fee),
+                    "Balance is below the minimum requirement. Add funds to avoid service fees."
                 ),
             }
 

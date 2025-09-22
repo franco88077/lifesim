@@ -113,7 +113,7 @@
             </div>
             <div class="account-activity__balances" aria-label="Account balances">
               <h3>Account Balances</h3>
-              {% set account_label_map = {'checking': 'CHECKING', 'savings': 'SAVINGS'} %}
+              {% set account_label_map = {'checking': 'Checking Account', 'savings': 'Savings Account'} %}
               <div class="account-grid">
                 {% for account in accounts %}
                   {% set account_label = account_label_map.get(account.id, account.name) %}
