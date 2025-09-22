@@ -44,6 +44,19 @@
         <form class="job-settings__form" data-job-settings-form novalidate>
           <div class="job-settings__message" data-job-settings-message aria-live="polite"></div>
           <label class="job-settings__field">
+            <span>Payroll company name</span>
+            <input
+              type="text"
+              name="payroll_company_name"
+              value="{{ settings.payroll_company_name }}"
+              maxlength="80"
+              required
+              data-job-company-name
+            />
+            <p class="job-form__hint">Shown on bank transactions when jobs pay out.</p>
+          </label>
+
+          <label class="job-settings__field">
             <span>Minimum hourly wage</span>
             <div class="job-form__input-group">
               <span class="job-form__prefix">$</span>

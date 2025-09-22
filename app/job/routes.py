@@ -1,8 +1,21 @@
 """Routes that power the Lifesim job system."""
 from __future__ import annotations
 
-from flask import jsonify, render_template, request
+from decimal import Decimal
 
+from flask import jsonify, render_template, request
+from sqlalchemy.exc import SQLAlchemyError
+
+from ..banking.models import BankTransaction
+from ..banking.services import (
+    decimal_to_number,
+    ensure_bank_defaults,
+    fetch_accounts,
+    find_account,
+    format_currency,
+    quantize_amount,
+)
+from ..extensions import db
 from ..logging_service import log_manager
 from . import bp
 from .services import JobRepository
@@ -53,12 +66,89 @@ def _parse_job_payload(data: dict[str, object]) -> dict[str, object]:
     }
 
 
+def _build_payout_options() -> list[dict[str, object]]:
+    """Return the available payout options based on open bank accounts."""
+
+    ensure_bank_defaults()
+    accounts = fetch_accounts()
+
+    options: list[dict[str, object]] = [
+        {
+            "value": "cash",
+            "label": "Cash",
+            "description": "Receive the payment as cash on hand.",
+            "account_slug": "hand",
+        }
+    ]
+
+    for slug, fallback_label in ("checking", "Checking Account"), ("savings", "Savings Account"):
+        account = next(
+            (acct for acct in accounts if acct.slug == slug and not acct.is_closed),
+            None,
+        )
+        if not account:
+            continue
+        options.append(
+            {
+                "value": slug,
+                "label": account.name or fallback_label,
+                "description": f"Deposit directly into {account.name or fallback_label}.",
+                "account_slug": slug,
+            }
+        )
+
+    return options
+
+
+def _deposit_job_income(
+    amount: Decimal, payout_method: str, *, job_title: str, company_name: str
+) -> tuple[BankTransaction, str]:
+    """Deposit job earnings into the selected account and return the ledger entry."""
+
+    ensure_bank_defaults()
+
+    method = (payout_method or "").strip().lower()
+    slug_map = {"cash": "hand", "checking": "checking", "savings": "savings"}
+    destination_slug = slug_map.get(method)
+    if not destination_slug:
+        raise ValueError("Choose how you'd like to receive the payment.")
+
+    destination = find_account(destination_slug, include_closed=True)
+    if not destination or destination.is_closed:
+        raise LookupError("The selected account is unavailable.")
+
+    quantized_amount = quantize_amount(amount)
+    if quantized_amount <= 0:
+        raise ValueError("Unable to deposit a non-positive amount.")
+
+    description = f"{job_title} payment from {company_name}"
+    transaction = BankTransaction(
+        account=destination,
+        name=company_name,
+        description=description,
+        direction="credit",
+        amount=quantized_amount,
+    )
+
+    try:
+        destination.balance = quantize_amount(destination.balance + quantized_amount)
+        db.session.add(destination)
+        db.session.add(transaction)
+        db.session.commit()
+    except SQLAlchemyError as exc:  # pragma: no cover - defensive
+        db.session.rollback()
+        raise RuntimeError("Unable to record the payment at this time.") from exc
+
+    return transaction, destination_slug
+
+
 @bp.route("/")
 def listings():
     """Display all available jobs for the player."""
 
     jobs = JobRepository.serialize_jobs()
     settings = JobRepository.settings().to_dict()
+    payout_options = _build_payout_options()
     time_jobs = [job for job in jobs if job["pay_type"] == "time"]
     task_jobs = [job for job in jobs if job["pay_type"] == "task"]
     available_jobs = sum(1 for job in jobs if job["is_available"])
@@ -86,6 +176,7 @@ def listings():
             "task": len(task_jobs),
         },
         settings=settings,
+        payout_options=payout_options,
         active_nav="job",
         active_job_tab="listings",
     )
@@ -155,6 +246,7 @@ def api_jobs():
                 "success": True,
                 "jobs": JobRepository.serialize_jobs(),
                 "settings": JobRepository.settings().to_dict(),
+                "payout_options": _build_payout_options(),
             }
         )
 
@@ -254,6 +346,7 @@ def api_settings():
     minimum_wage_input = payload.get("minimum_hourly_wage")
     default_limit_input = payload.get("default_daily_limit")
     reset_hour_input = payload.get("daily_reset_hour")
+    company_name_input = payload.get("payroll_company_name")
 
     minimum_wage = None if minimum_wage_input in (None, "") else minimum_wage_input
     try:
@@ -279,6 +372,7 @@ def api_settings():
             minimum_hourly_wage=minimum_wage,
             default_daily_limit=default_limit,
             daily_reset_hour=reset_hour,
+            payroll_company_name=company_name_input,
         ).to_dict()
     except (ValueError, ArithmeticError) as exc:
         return _json_error(str(exc))
@@ -298,4 +392,151 @@ def api_settings():
         "settings": settings,
         "message": "Job settings saved.",
     })
+
+
+@bp.route("/api/jobs/<job_id>/start", methods=["POST"])
+def api_job_start(job_id: str):
+    """Start or resume a time-based job."""
+
+    try:
+        job = JobRepository.start_time_job(job_id)
+    except KeyError:
+        return _json_error("Job not found.", status=404)
+    except ValueError as exc:
+        return _json_error(str(exc))
+
+    settings = JobRepository.settings()
+    job_dict = job.to_dict(settings)
+    action = "Resumed" if job_dict.get("active_session_seconds") else "Started"
+
+    log_manager.record(
+        component="Job",
+        action="time-start",
+        level="info",
+        result="success",
+        title=f"{action} time-based job",
+        user_summary=f"{action} the shift for {job.title}.",
+        technical_details=f"job.start activated session for job {job_id}.",
+    )
+
+    return jsonify(
+        {
+            "success": True,
+            "job": job_dict,
+            "message": f"{action} {job.title}.",
+        }
+    )
+
+
+@bp.route("/api/jobs/<job_id>/pause", methods=["POST"])
+def api_job_pause(job_id: str):
+    """Pause an active time-based job."""
+
+    try:
+        job = JobRepository.pause_time_job(job_id)
+    except KeyError:
+        return _json_error("Job not found.", status=404)
+    except ValueError as exc:
+        return _json_error(str(exc))
+
+    settings = JobRepository.settings()
+    job_dict = job.to_dict(settings)
+
+    log_manager.record(
+        component="Job",
+        action="time-pause",
+        level="info",
+        result="success",
+        title="Paused time-based job",
+        user_summary=f"Paused the shift for {job.title}.",
+        technical_details=f"job.pause stored {job_dict.get('active_session_seconds', 0)} seconds of progress.",
+    )
+
+    return jsonify(
+        {
+            "success": True,
+            "job": job_dict,
+            "message": f"Paused {job.title}.",
+        }
+    )
+
+
+@bp.route("/api/jobs/<job_id>/complete", methods=["POST"])
+def api_job_complete(job_id: str):
+    """Complete a job and deposit the earnings."""
+
+    payload = request.get_json(silent=True) or {}
+    payout_method = (payload.get("payout_method") or "").strip()
+
+    if not payout_method:
+        return _json_error("Choose how you'd like to receive payment.")
+
+    try:
+        job, earnings = JobRepository.complete_job(job_id)
+    except KeyError:
+        return _json_error("Job not found.", status=404)
+    except ValueError as exc:
+        return _json_error(str(exc))
+
+    settings = JobRepository.settings()
+
+    try:
+        transaction, destination_slug = _deposit_job_income(
+            earnings,
+            payout_method,
+            job_title=job.title,
+            company_name=settings.payroll_company_name,
+        )
+    except LookupError:
+        return _json_error("The selected account is unavailable. Open the account before depositing.")
+    except ValueError as exc:
+        return _json_error(str(exc))
+    except RuntimeError as exc:
+        log_manager.record(
+            component="Job",
+            action="job-complete",
+            level="error",
+            result="error",
+            title="Job completion failed",
+            user_summary="The payment could not be deposited due to a banking error.",
+            technical_details=f"job.complete encountered banking error: {exc}",
+        )
+        return _json_error("Unable to deposit the payment right now. Please try again shortly.", status=500)
+
+    account = transaction.account
+    job_dict = job.to_dict(settings)
+    amount_display = format_currency(transaction.amount)
+    message = f"Deposited {amount_display} to {account.name}."
+
+    log_manager.record(
+        component="Job",
+        action="job-complete",
+        level="info",
+        result="success",
+        title="Job completed",
+        user_summary=f"Completed {job.title} and {message.lower()}",
+        technical_details=(
+            "job.complete recorded earnings of {} for job {} and deposited into {} ({}).".format(
+                amount_display,
+                job_id,
+                account.name,
+                destination_slug,
+            )
+        ),
+    )
+
+    return jsonify(
+        {
+            "success": True,
+            "job": job_dict,
+            "message": message,
+            "payout": {
+                "amount": decimal_to_number(transaction.amount),
+                "amount_display": amount_display,
+                "account": account.name,
+                "account_slug": account.slug,
+                "balance": decimal_to_number(account.balance),
+            },
+        }
+    )
 
