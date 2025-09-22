@@ -554,7 +554,7 @@ def api_open_accounts():
 
 @bp.post("/api/transfer/move")
 def api_move():
-    """Move money between any two accounts using a unified workflow."""
+    """Facilitate account-to-account transfers through a single, consistent workflow."""
 
     ensure_bank_defaults()
     settings = get_bank_settings()
