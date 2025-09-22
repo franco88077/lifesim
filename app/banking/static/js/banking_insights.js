@@ -17,6 +17,48 @@ document.addEventListener("DOMContentLoaded", () => {
     chartData = [];
   }
 
+  const createEmptySeriesData = () => ({
+    daily: [],
+    monthly: [],
+    yearly: [],
+  });
+
+  if (!Array.isArray(chartData)) {
+    chartData = [];
+  }
+
+  chartData = chartData.map((entry) => {
+    if (!entry || typeof entry !== "object") {
+      return entry;
+    }
+
+    let dataset = entry.data;
+
+    if (typeof dataset === "string") {
+      try {
+        dataset = JSON.parse(dataset);
+      } catch (parseError) {
+        console.error(
+          `Failed to decode insight series data for "${entry.slug ?? entry.name ?? "series"}"`,
+          parseError
+        );
+        dataset = createEmptySeriesData();
+      }
+    }
+
+    const normalized =
+      dataset && typeof dataset === "object" ? dataset : createEmptySeriesData();
+
+    return {
+      ...entry,
+      data: {
+        daily: Array.isArray(normalized.daily) ? normalized.daily : [],
+        monthly: Array.isArray(normalized.monthly) ? normalized.monthly : [],
+        yearly: Array.isArray(normalized.yearly) ? normalized.yearly : [],
+      },
+    };
+  });
+
   if (!Array.isArray(chartData) || !chartData.length) {
     return;
   }
