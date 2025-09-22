@@ -747,8 +747,8 @@ def _build_insight_chart_series(
             "slug": "checking-balance",
             "name": "Checking Balance",
             "description": (
-                "Monitor how checking cash flows over any window without paging"
-                " through transactions."
+                "Follow daily checking activity to understand how available cash shifts"
+                " throughout the selected period."
             ),
             "color": "#2563eb",
             "format": "currency",

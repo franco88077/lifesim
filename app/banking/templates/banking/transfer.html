@@ -48,11 +48,11 @@
     <section class="banking-overview">
       <header class="banking-overview__header">
         <h1>{{ bank_settings.bank_name }} — Banking Transfer</h1>
-        <p>Move money between any two accounts.</p>
+        <p>Initiate secure transfers between your available accounts with straightforward controls.</p>
       </header>
       <div class="transfer-balances" aria-label="Available funds">
         <h2>Available Funds</h2>
-        <p>Check balances before you submit a transfer to keep cash, checking, and savings aligned.</p>
+        <p>Review current balances before confirming a transfer so cash, checking, and savings stay on target.</p>
         {% set account_label_map = {'checking': 'CHECKING', 'savings': 'SAVINGS'} %}
         <div class="account-grid">
           {% for account in accounts %}
@@ -76,7 +76,7 @@
         {% if can_transfer %}
           <article class="transfer-card transfer-card--wide">
             <h2>Transfer Funds</h2>
-            <p>Move money between any two accounts.</p>
+            <p>Initiate secure transfers between your available accounts with straightforward controls.</p>
             <form
               id="form-account-transfer"
               class="transfer-form"

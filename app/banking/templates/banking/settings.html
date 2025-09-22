@@ -45,12 +45,12 @@
       <header class="banking-overview__header">
         <h1>{{ bank_settings.bank_name }} — Banking Settings</h1>
         <p>
-          Configure {{ bank_settings.bank_name }} by defining fees, savings interest, and how much money sits in each
+          Manage {{ bank_settings.bank_name }} policies, including fees, savings interest, and target balances for every
           account.
         </p>
       </header>
       <p class="banking-overview__note">
-        All changes are logged for auditing, and the ledger will reflect new balances immediately.
+        Every update is recorded for audit review and reflected in account balances right away.
       </p>
 
       {% if feedback %}
@@ -256,7 +256,7 @@
         <section class="settings-panel" aria-label="Account closures">
           <header>
             <h2>Account Closures</h2>
-            <p>Return account balances to cash and apply the configured closure fees automatically.</p>
+            <p>Settle remaining balances to cash and apply the appropriate closure fees in one step.</p>
           </header>
           <div class="settings-closure-grid">
             {% if can_close_all_accounts %}
@@ -317,7 +317,7 @@
       <section class="settings-panel" aria-label="Account balances">
         <header>
           <h2>Manage Account Balances</h2>
-          <p>Review balances across cash, checking, and savings. Closed accounts cannot be adjusted.</p>
+          <p>Review current balances for cash, checking, and savings; closed accounts remain view-only for reference.</p>
         </header>
         <div class="settings-account-grid">
           {% for account in accounts %}
