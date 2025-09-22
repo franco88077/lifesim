@@ -12,6 +12,8 @@ from sqlalchemy.orm import joinedload
 from ..extensions import db
 from .models import BankAccount, BankSettings, BankTransaction
 
+ZERO = Decimal("0.00")
+
 DEFAULT_ACCOUNTS: tuple[dict[str, Any], ...] = (
     {
         "slug": "hand",
@@ -536,6 +538,230 @@ def build_account_due_items(
     return due_items
 
 
+def _transaction_delta(transaction: BankTransaction) -> Decimal:
+    """Return the signed amount represented by the transaction."""
+
+    amount = quantize_amount(transaction.amount)
+    if transaction.direction == "credit":
+        return amount
+    return ZERO - amount
+
+
+def _build_account_balance_series(
+    account: BankAccount | None,
+) -> list[tuple[date, Decimal]]:
+    """Return dated balance snapshots for the provided account."""
+
+    if not account:
+        return []
+
+    transactions = (
+        BankTransaction.query.filter_by(account_id=account.id)
+        .order_by(BankTransaction.created_at.asc())
+        .all()
+    )
+
+    current_balance = quantize_amount(account.balance)
+    net_change = ZERO
+
+    for transaction in transactions:
+        net_change += _transaction_delta(transaction)
+
+    starting_balance = quantize_amount(current_balance - net_change)
+    timeline: dict[date, Decimal] = {}
+    start_date = account.created_at.date()
+    timeline[start_date] = starting_balance
+
+    running = starting_balance
+    for transaction in transactions:
+        running = quantize_amount(running + _transaction_delta(transaction))
+        timeline[transaction.created_at.date()] = running
+
+    final_reference_dates = list(timeline.keys()) + [account.updated_at.date()]
+    final_date = max(final_reference_dates)
+    timeline[final_date] = current_balance
+
+    return sorted(timeline.items())
+
+
+def _aggregate_series(
+    series: list[tuple[date, Decimal]], period: str
+) -> list[tuple[date, Decimal]]:
+    """Collapse a dated series to the requested cadence."""
+
+    if not series:
+        return []
+
+    aggregated: dict[date, Decimal] = {}
+
+    for point_date, value in series:
+        if period == "monthly":
+            key = date(point_date.year, point_date.month, 1)
+        elif period == "yearly":
+            key = date(point_date.year, 1, 1)
+        else:
+            key = point_date
+        aggregated[key] = value
+
+    return sorted(aggregated.items())
+
+
+def _serialize_series(
+    series: list[tuple[date, Decimal]],
+) -> list[dict[str, float | str]]:
+    """Convert dated Decimal points into JSON-friendly dictionaries."""
+
+    return [
+        {"date": point_date.isoformat(), "value": decimal_to_number(value)}
+        for point_date, value in series
+    ]
+
+
+def _build_period_series(
+    series: list[tuple[date, Decimal]]
+) -> dict[str, list[dict[str, float | str]]]:
+    """Return daily, monthly, and yearly aggregations for the series."""
+
+    return {
+        "daily": _serialize_series(series),
+        "monthly": _serialize_series(_aggregate_series(series, "monthly")),
+        "yearly": _serialize_series(_aggregate_series(series, "yearly")),
+    }
+
+
+def _combine_series(
+    series_list: list[list[tuple[date, Decimal]]]
+) -> list[tuple[date, Decimal]]:
+    """Return a summed series using the most recent value per input series."""
+
+    valid_series = [series for series in series_list if series]
+    if not valid_series:
+        return []
+
+    unique_dates = sorted(
+        {point_date for series in valid_series for point_date, _ in series}
+    )
+    indices = [0] * len(valid_series)
+    last_values = [ZERO for _ in valid_series]
+    combined: list[tuple[date, Decimal]] = []
+
+    for current_date in unique_dates:
+        for idx, series in enumerate(valid_series):
+            while indices[idx] < len(series) and series[indices[idx]][0] <= current_date:
+                last_values[idx] = series[indices[idx]][1]
+                indices[idx] += 1
+
+        combined_total = sum(last_values, ZERO)
+        combined.append((current_date, quantize_amount(combined_total)))
+
+    return combined
+
+
+def _build_interest_series(
+    balance_series: list[tuple[date, Decimal]], rate: Decimal
+) -> dict[str, list[tuple[date, Decimal]]]:
+    """Return projected interest earnings across multiple cadences."""
+
+    if not balance_series:
+        return {"daily": [], "monthly": [], "yearly": []}
+
+    percentage = Decimal(rate)
+    daily_rate = percentage / Decimal("100") / Decimal("365")
+    monthly_rate = percentage / Decimal("100") / Decimal("12")
+    yearly_rate = percentage / Decimal("100")
+
+    daily_points: list[tuple[date, Decimal]] = []
+    monthly_points: dict[date, Decimal] = {}
+    yearly_points: dict[date, Decimal] = {}
+
+    for point_date, balance in balance_series:
+        balance_value = quantize_amount(balance)
+        daily_points.append(
+            (point_date, quantize_amount(balance_value * daily_rate))
+        )
+
+        month_key = date(point_date.year, point_date.month, 1)
+        monthly_points[month_key] = quantize_amount(balance_value * monthly_rate)
+
+        year_key = date(point_date.year, 1, 1)
+        yearly_points[year_key] = quantize_amount(balance_value * yearly_rate)
+
+    return {
+        "daily": daily_points,
+        "monthly": sorted(monthly_points.items()),
+        "yearly": sorted(yearly_points.items()),
+    }
+
+
+def _build_insight_chart_series(
+    checking_account: BankAccount | None,
+    savings_account: BankAccount | None,
+    settings: BankSettings,
+) -> list[dict[str, Any]]:
+    """Return chart configuration for checking, savings, totals, and APY."""
+
+    checking_series = _build_account_balance_series(checking_account)
+    savings_series = _build_account_balance_series(savings_account)
+    total_series = _combine_series([checking_series, savings_series])
+    interest_series = _build_interest_series(
+        savings_series, settings.savings_interest_rate
+    )
+
+    return [
+        {
+            "slug": "checking-balance",
+            "name": "Checking Balance",
+            "description": (
+                "Monitor how checking cash flows over any window without paging"
+                " through transactions."
+            ),
+            "color": "#2563eb",
+            "format": "currency",
+            "is_available": checking_account is not None,
+            "data": _build_period_series(checking_series),
+        },
+        {
+            "slug": "savings-balance",
+            "name": "Savings Balance",
+            "description": (
+                "Track savings growth and dips with quick, high-level timelines."
+            ),
+            "color": "#047857",
+            "format": "currency",
+            "is_available": savings_account is not None,
+            "data": _build_period_series(savings_series),
+        },
+        {
+            "slug": "total-balance",
+            "name": "Total Banked Cash",
+            "description": (
+                "Review the combined value of checking and savings without"
+                " manual reconciliation."
+            ),
+            "color": "#7c3aed",
+            "format": "currency",
+            "is_available": checking_account is not None or savings_account is not None,
+            "data": _build_period_series(total_series),
+        },
+        {
+            "slug": "savings-apy",
+            "name": "APY Earnings",
+            "description": (
+                "Estimate daily, monthly, and yearly interest based on the"
+                " current savings balance."
+            ),
+            "color": "#f97316",
+            "format": "currency",
+            "is_available": savings_account is not None,
+            "data": {
+                "daily": _serialize_series(interest_series["daily"]),
+                "monthly": _serialize_series(interest_series["monthly"]),
+                "yearly": _serialize_series(interest_series["yearly"]),
+            },
+        },
+    ]
+
+
 def build_account_insights(
     settings: BankSettings, accounts: Iterable[BankAccount]
 ) -> dict[str, Any]:
@@ -598,6 +824,7 @@ def build_account_insights(
         "savings": savings_info,
         "accounts": [checking_info, savings_info],
         "due_items": due_items,
+        "charts": _build_insight_chart_series(checking_account, savings_account, settings),
     }
 
 
