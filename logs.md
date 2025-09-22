@@ -1,4 +1,15 @@
 # Lifesim change log
+## 2025-10-07
+- **What**: Rebuilt the Manage Jobs experience with a light theme, guardrail summaries, job builder,
+  and ledger tuned for hourly or per-task payouts plus category insights.
+- **How**: Expanded the job route with guardrail defaults, category summaries, and enriched job data,
+  rewrote the workspace template to add the builder, summary cards, responsive ledger, and updated
+  settings, refreshed the stylesheet with a white, gradient-accented palette, and extended the job
+  script with chip states, pay previews, and completion toasts.
+- **Why**: The previous roster table could not express per-hour vs per-task jobs, lacked guardrail
+  controls, and used a dark treatment inconsistent with the requested contemporary manager style.
+- **Purpose**: Delivers a sleek job system where users can define pay structures, enforce minimums,
+  categorize gigs, and monitor daily limits inside a cohesive task manager theme.
 ## 2025-10-06
 - **What**: Rebuilt the job workspace with tabbed navigation, dedicated panels for adding, managing,
   and configuring jobs, and aligned the global navigation ordering.

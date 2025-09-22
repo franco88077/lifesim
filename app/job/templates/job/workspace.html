@@ -11,16 +11,23 @@
 {% block content %}
   <div class="job-shell">
     <section class="job-hero">
-      <header>
+      <div class="job-hero__intro">
         <h1>Lifesim — Job</h1>
-        <p>Structure your workweek, track momentum, and celebrate progress.</p>
-      </header>
-      <div class="hero-insight">
-        <p>Next milestone</p>
-        <strong>{{ milestones[0].name }}</strong>
-        <span>{{ milestones[0].deadline }}</span>
-        <p>Weekly total</p>
-        <span id="weekly-total" class="weekly-total" aria-live="polite"></span>
+        <p>Design an efficient job board, enforce payouts, and keep every shift purposeful.</p>
+        <div class="job-hero__defaults" role="list">
+          <span role="listitem">Minimum hourly wage <strong>${{ job_rules.minimum_wage }}</strong></span>
+          <span role="listitem">Minimum task pay <strong>${{ job_rules.minimum_fixed_pay }}</strong></span>
+          <span role="listitem">Daily completion cap <strong>{{ job_rules.daily_completion_limit }}×</strong></span>
+        </div>
+      </div>
+      <div class="job-hero__stats" role="list">
+        {% for metric in job_metrics %}
+          <article class="hero-stat" role="listitem">
+            <span class="hero-stat__label">{{ metric.title }}</span>
+            <strong>{{ metric.value }}</strong>
+            <p>{{ metric.support }}</p>
+          </article>
+        {% endfor %}
       </div>
     </section>
 
@@ -88,80 +95,243 @@
       >
         <header class="job-panel__header">
           <h2>Manage jobs</h2>
-          <p>Reorder commitments, update statuses, and balance your available hours.</p>
+          <p>Build repeatable gigs, lock in minimum pay, and keep daily streaks intact.</p>
         </header>
+        <div class="job-manage__summary" role="list">
+          <article class="job-summary" role="listitem">
+            <span class="job-summary__label">Hourly guardrail</span>
+            <strong>${{ job_rules.minimum_wage }}</strong>
+            <p>Minimum hourly wage for per-hour jobs</p>
+          </article>
+          <article class="job-summary" role="listitem">
+            <span class="job-summary__label">Task guardrail</span>
+            <strong>${{ job_rules.minimum_fixed_pay }}</strong>
+            <p>Minimum payout for per-task jobs</p>
+          </article>
+          <article class="job-summary" role="listitem">
+            <span class="job-summary__label">Daily repetition</span>
+            <strong>{{ job_rules.daily_completion_limit }}×</strong>
+            <p>Maximum completions per job each day</p>
+          </article>
+        </div>
+
         <div class="job-manage__grid">
-          <section class="job-roster" aria-label="Managed job roster">
-            <header class="job-roster__header">
-              <h3>Active roster</h3>
-              <button type="button" class="job-roster__add">Add new job</button>
+          <section class="job-builder" aria-label="Create a job template">
+            <header class="job-builder__header">
+              <h3>Build a new job</h3>
+              <p>Define the pay structure, category, and repetition guardrails before publishing.</p>
             </header>
-            <table class="job-roster__table">
+            <form class="job-builder__form" action="#" method="post">
+              <div class="job-builder__field">
+                <label for="job-name">Job title</label>
+                <input
+                  type="text"
+                  id="job-name"
+                  name="title"
+                  placeholder="e.g., Weekend laundry reset"
+                  required
+                />
+              </div>
+
+              <fieldset class="job-builder__field job-builder__field--inline">
+                <legend>Pay type</legend>
+                <label class="job-chip">
+                  <input type="radio" name="pay_type" value="hourly" checked />
+                  <span>Pay per hour</span>
+                </label>
+                <label class="job-chip">
+                  <input type="radio" name="pay_type" value="task" />
+                  <span>Pay per task</span>
+                </label>
+              </fieldset>
+
+              <div class="job-builder__field-group">
+                <div class="job-builder__field" data-pay-field="hourly">
+                  <label for="job-hourly-rate">Hourly rate</label>
+                  <input
+                    type="number"
+                    id="job-hourly-rate"
+                    name="hourly_rate"
+                    min="{{ job_rules.minimum_wage }}"
+                    value="{{ job_rules.minimum_wage }}"
+                    data-minimum="{{ job_rules.minimum_wage }}"
+                  />
+                </div>
+                <div class="job-builder__field" data-pay-field="task" hidden>
+                  <label for="job-task-rate">Task payout</label>
+                  <input
+                    type="number"
+                    id="job-task-rate"
+                    name="task_rate"
+                    min="{{ job_rules.minimum_fixed_pay }}"
+                    value="{{ job_rules.minimum_fixed_pay }}"
+                    data-minimum="{{ job_rules.minimum_fixed_pay }}"
+                  />
+                </div>
+                <div class="job-builder__field">
+                  <label for="job-daily-limit">Daily completion limit</label>
+                  <input
+                    type="number"
+                    id="job-daily-limit"
+                    name="daily_limit"
+                    min="1"
+                    value="{{ job_rules.daily_completion_limit }}"
+                    data-daily-limit="{{ job_rules.daily_completion_limit }}"
+                  />
+                </div>
+              </div>
+
+              <div class="job-builder__field">
+                <span class="job-builder__label">Categories</span>
+                <div class="job-builder__chips">
+                  {% for category in job_categories %}
+                    <label class="job-chip">
+                      <input type="checkbox" name="categories" value="{{ category.id }}" />
+                      <span>{{ category.label }}</span>
+                    </label>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <div class="job-builder__preview" data-pay-preview>
+                Set a rate to preview projected earnings and guardrail checks.
+              </div>
+
+              <div class="job-builder__actions">
+                <button type="submit" class="job-builder__submit">Add to board</button>
+                <button type="button" class="job-builder__secondary">Save as draft</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="job-ledger" aria-label="Managed jobs">
+            <header class="job-ledger__header">
+              <h3>Today's board</h3>
+              <p>Log completions to stay within the daily caps and pay expectations.</p>
+            </header>
+            <div class="job-ledger__table-wrapper">
+              <table class="job-ledger__table">
+                <thead>
+                  <tr>
+                    <th scope="col">Job</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Pay</th>
+                    <th scope="col">Daily limit</th>
+                    <th scope="col">Progress</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="job-ledger__actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for managed_job in managed_jobs %}
+                    <tr
+                      data-job-row
+                      data-job-title="{{ managed_job.title }}"
+                      data-limit="{{ managed_job.daily_limit }}"
+                      data-completed="{{ managed_job.completions_today }}"
+                    >
+                      <th scope="row">
+                        <div class="job-ledger__title">
+                          <span>{{ managed_job.title }}</span>
+                          <span class="job-ledger__meta">{{ managed_job.next_window }}</span>
+                        </div>
+                      </th>
+                      <td>{{ managed_job.category }}</td>
+                      <td>
+                        <span>{{ managed_job.rate_display }}</span>
+                        <span class="job-ledger__frequency">{{ managed_job.frequency_label }}</span>
+                        <span class="job-ledger__projection">{{ managed_job.projected_label }}</span>
+                      </td>
+                      <td>{{ managed_job.daily_limit }}×</td>
+                      <td>
+                        <div class="job-progress" role="img" aria-label="{{ managed_job.progress_label }}">
+                          <span class="job-progress__count">
+                            <span data-progress-count>{{ managed_job.completions_today }}</span> / {{ managed_job.daily_limit }}
+                          </span>
+                          <span class="job-progress__track">
+                            <span
+                              class="job-progress__fill"
+                              style="width: {{ managed_job.progress }}%;"
+                              data-progress-fill
+                            ></span>
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="job-status job-status--{{ managed_job.status_class }}">{{ managed_job.status }}</span>
+                      </td>
+                      <td class="job-ledger__actions">
+                        <button type="button" class="job-ledger__action" data-complete-job>Complete</button>
+                        <button type="button" class="job-ledger__action job-ledger__action--secondary">Edit</button>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <div class="job-manage__secondary">
+          <section class="job-categories" aria-label="Category breakdown">
+            <header class="job-categories__header">
+              <h3>Category mix</h3>
+              <p>Watch where your effort clusters so you can diversify earnings.</p>
+            </header>
+            <div class="job-categories__grid" role="list">
+              {% for category in category_totals %}
+                <article class="job-category" role="listitem">
+                  <h4>{{ category.label }}</h4>
+                  <p class="job-category__value">{{ category.value }}</p>
+                  <p class="job-category__meta">{{ category.jobs }} jobs · {{ category.effort }}</p>
+                </article>
+              {% endfor %}
+            </div>
+          </section>
+
+          <section class="schedule" aria-label="Shift schedule">
+            <header>
+              <div class="schedule__header">
+                <h3>Shifts</h3>
+                <div class="schedule__total">
+                  <span>Weekly total</span>
+                  <span id="weekly-total" class="weekly-total" aria-live="polite"></span>
+                </div>
+              </div>
+              <button type="button" class="hours-toggle">Expand hours</button>
+            </header>
+            <table class="schedule__table">
               <thead>
                 <tr>
-                  <th scope="col">Job</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Pay</th>
-                  <th scope="col">Weekly hours</th>
-                  <th scope="col" class="job-roster__actions">Actions</th>
+                  <th scope="col">Day</th>
+                  <th scope="col">Hours</th>
+                  <th scope="col">Activity</th>
                 </tr>
               </thead>
               <tbody>
-                {% for managed_job in managed_jobs %}
-                  <tr>
-                    <th scope="row">{{ managed_job.title }}</th>
-                    <td>{{ managed_job.status }}</td>
-                    <td>{{ managed_job.rate }}</td>
-                    <td>{{ managed_job.hours }}</td>
-                    <td class="job-roster__actions">
-                      <button type="button" class="job-roster__action">Edit</button>
-                      <button type="button" class="job-roster__action job-roster__action--danger">Remove</button>
-                    </td>
+                {% for shift in shifts %}
+                  <tr data-hours="{{ shift.hours }}">
+                    <td data-label="Day">{{ shift.day }}</td>
+                    <td data-label="Hours">{{ shift.hours }}</td>
+                    <td data-label="Activity">{{ shift.activity }}</td>
                   </tr>
                 {% endfor %}
               </tbody>
             </table>
           </section>
 
-          <div class="job-manage__panels">
-            <section class="schedule" aria-label="Shift schedule">
-              <header>
-                <h3>Shifts</h3>
-                <button type="button" class="hours-toggle">Expand hours</button>
-              </header>
-              <table class="schedule__table">
-                <thead>
-                  <tr>
-                    <th scope="col">Day</th>
-                    <th scope="col">Hours</th>
-                    <th scope="col">Activity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for shift in shifts %}
-                    <tr data-hours="{{ shift.hours }}">
-                      <td data-label="Day">{{ shift.day }}</td>
-                      <td data-label="Hours">{{ shift.hours }}</td>
-                      <td data-label="Activity">{{ shift.activity }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </section>
-
-            <section class="milestones" aria-label="Career milestones">
-              <h3>Milestones</h3>
-              <div class="milestones__grid">
-                {% for milestone in milestones %}
-                  <article class="milestone" data-status="{{ milestone.status }}">
-                    <h4>{{ milestone.name }}</h4>
-                    <p>Deadline: {{ milestone.deadline }}</p>
-                    <p>Status: {{ milestone.status }}</p>
-                  </article>
-                {% endfor %}
-              </div>
-            </section>
-          </div>
+          <section class="milestones" aria-label="Career milestones">
+            <h3>Milestones</h3>
+            <div class="milestones__grid">
+              {% for milestone in milestones %}
+                <article class="milestone" data-status="{{ milestone.status }}">
+                  <h4>{{ milestone.name }}</h4>
+                  <p>Deadline: {{ milestone.deadline }}</p>
+                  <p>Status: {{ milestone.status }}</p>
+                </article>
+              {% endfor %}
+            </div>
+          </section>
         </div>
       </section>
 
@@ -187,6 +357,23 @@
                 <input type="checkbox" name="auto_assign" {% if job_preferences.auto_assign %}checked{% endif %} />
                 <span>Auto-assign selected jobs</span>
               </label>
+            </div>
+
+            <div class="job-settings__group">
+              <div class="job-settings__text">
+                <h3>Pay guardrails</h3>
+                <p>Set the minimum payout values every new job proposal must meet.</p>
+              </div>
+              <div class="job-settings__controls job-settings__controls--stacked">
+                <label class="job-settings__control">
+                  <span class="job-settings__label">Minimum hourly wage</span>
+                  <input type="number" name="minimum_wage" min="1" value="{{ job_rules.minimum_wage }}" />
+                </label>
+                <label class="job-settings__control">
+                  <span class="job-settings__label">Minimum task payout</span>
+                  <input type="number" name="minimum_fixed_pay" min="1" value="{{ job_rules.minimum_fixed_pay }}" />
+                </label>
+              </div>
             </div>
 
             <div class="job-settings__group">
@@ -219,6 +406,23 @@
                   min="5"
                   max="80"
                   value="{{ job_preferences.max_weekly_hours }}"
+                />
+              </label>
+            </div>
+
+            <div class="job-settings__group">
+              <div class="job-settings__text">
+                <h3>Daily completion cap</h3>
+                <p>Limit how many times a job can be completed to protect your energy and pricing.</p>
+              </div>
+              <label class="job-settings__control">
+                <span class="job-settings__label">Completions per day</span>
+                <input
+                  type="number"
+                  name="daily_completion_limit"
+                  min="1"
+                  max="12"
+                  value="{{ job_rules.daily_completion_limit }}"
                 />
               </label>
             </div>
