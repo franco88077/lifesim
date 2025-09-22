@@ -1,4 +1,16 @@
 # Lifesim change log
+## 2025-10-06
+- **What**: Rebuilt the job workspace with tabbed navigation, dedicated panels for adding, managing,
+  and configuring jobs, and aligned the global navigation ordering.
+- **How**: Added catalog, roster, and preference data in the job route, reworked the template with a
+  1000px job shell, sub-navigation, roster table, and settings form, extended the job stylesheet with
+  container, tab, card, and settings patterns, wired tab switching logic in the job script, and moved
+  the Job link between Banking and Real Estate in the base layout.
+- **Why**: The previous workspace only showed a schedule and milestones, leaving no entry point for
+  selecting new jobs or adjusting preferences, and the primary navigation did not match the desired
+  placement.
+- **Purpose**: Establishes the foundational structure for future job features while keeping layout
+  parity with banking and making the new job tools easy to discover.
 ## 2025-10-05
 - **What**: Restored the banking insights view by sharing the timezone-aware date formatter across helpers.
 - **How**: Promoted the `localized_date` utility to module scope and reused it from insight builders while trimming the redundant nested version.

@@ -1,5 +1,7 @@
 /* Job workspace enhancements. */
 document.addEventListener("DOMContentLoaded", () => {
+  const jobTabs = document.querySelectorAll("[data-job-tab]");
+  const jobPanels = document.querySelectorAll("[data-job-panel]");
   const rows = document.querySelectorAll(".schedule__table tbody tr");
   const toggle = document.querySelector(".hours-toggle");
   const weeklyTotal = document.getElementById("weekly-total");
@@ -24,12 +26,56 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  const activateTab = (target) => {
+    if (!target) {
+      return;
+    }
+
+    jobTabs.forEach((tab) => {
+      const isActive = tab.dataset.jobTab === target;
+      tab.classList.toggle("is-active", isActive);
+      if (isActive) {
+        tab.setAttribute("aria-current", "page");
+      } else {
+        tab.removeAttribute("aria-current");
+      }
+    });
+
+    jobPanels.forEach((panel) => {
+      const show = panel.dataset.jobPanel === target;
+      panel.classList.toggle("is-active", show);
+      if (show) {
+        panel.removeAttribute("hidden");
+      } else {
+        panel.setAttribute("hidden", "hidden");
+      }
+    });
+
+    if (target === "manage") {
+      calculateTotal();
+      const expanded = toggle ? toggle.classList.contains("is-expanded") : false;
+      highlightFocus(expanded);
+    }
+  };
+
   if (toggle) {
     toggle.addEventListener("click", () => {
       const expanded = toggle.classList.toggle("is-expanded");
       toggle.textContent = expanded ? "Collapse hours" : "Expand hours";
       highlightFocus(expanded);
     });
+  }
+
+  jobTabs.forEach((tab) => {
+    tab.addEventListener("click", (event) => {
+      event.preventDefault();
+      activateTab(tab.dataset.jobTab);
+    });
+  });
+
+  const initialTab = document.querySelector("[data-job-tab].is-active") || jobTabs[0];
+  if (initialTab) {
+    activateTab(initialTab.dataset.jobTab);
   }
 
   calculateTotal();
