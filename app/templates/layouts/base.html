@@ -21,9 +21,22 @@
           <a href="{{ url_for('real_estate.portfolio') }}" class="nav-item{% if active_nav == 'real_estate' %} active{% endif %}">Real Estate</a>
           <a href="{{ url_for('shop.catalog') }}" class="nav-item{% if active_nav == 'shop' %} active{% endif %}">Shop</a>
           <a href="{{ url_for('job.workspace') }}" class="nav-item{% if active_nav == 'job' %} active{% endif %}">Job</a>
-          <a href="{{ url_for('logging.console') }}" class="nav-item">Logs</a>
+          <a
+            href="{{ url_for('logging.console') }}"
+            class="nav-item{% if active_nav == 'logs' %} active{% endif %}"
+          >
+            Logs
+          </a>
+          <a
+            href="{{ url_for('settings.preferences') }}"
+            class="nav-item{% if active_nav == 'settings' %} active{% endif %}"
+          >
+            Settings
+          </a>
         </nav>
-        <div class="environment">Env: {{ environment|capitalize }}</div>
+        <div class="environment">
+          Env: {{ environment|capitalize }} · TZ: {{ active_timezone_label }}
+        </div>
       </header>
 
       <main class="content" role="main">

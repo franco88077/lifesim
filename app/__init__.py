@@ -20,6 +20,7 @@ def create_app(config_class: type[Config] = Config) -> Flask:
         # Import models to ensure they are registered before table creation.
         from . import models as core_models  # noqa: F401
         from .banking import models as banking_models  # noqa: F401
+        from .settings import models as settings_models  # noqa: F401
 
         db.create_all()
 
@@ -29,6 +30,8 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     from .shop import bp as shop_bp
     from .job import bp as job_bp
     from .logging import bp as logging_bp
+    from .settings import bp as settings_bp
+    from .settings import routes as settings_routes  # noqa: F401
 
     app.register_blueprint(index_bp)
     app.register_blueprint(banking_bp, url_prefix="/banking")
@@ -36,8 +39,17 @@ def create_app(config_class: type[Config] = Config) -> Flask:
     app.register_blueprint(shop_bp, url_prefix="/shop")
     app.register_blueprint(job_bp, url_prefix="/job")
     app.register_blueprint(logging_bp, url_prefix="/logs")
+    app.register_blueprint(settings_bp, url_prefix="/settings")
 
-    for component in ("Home", "Banking", "RealEstate", "Shop", "Job", "Logging"):
+    for component in (
+        "Home",
+        "Banking",
+        "RealEstate",
+        "Shop",
+        "Job",
+        "Logging",
+        "Settings",
+    ):
         log_manager.register_component(component)
 
     @app.context_processor
@@ -46,18 +58,29 @@ def create_app(config_class: type[Config] = Config) -> Flask:
         from sqlalchemy.exc import SQLAlchemyError
 
         from .banking.services import get_bank_settings
+        from .settings.services import describe_timezone, get_app_settings
 
         try:
             settings = get_bank_settings()
         except SQLAlchemyError:
             settings = None
+        try:
+            system_settings = get_app_settings()
+        except SQLAlchemyError:
+            system_settings = None
+
         bank_name = settings.bank_name if settings else "Lifesim Bank"
+        timezone_name = system_settings.timezone if system_settings else "UTC"
+        timezone_label = describe_timezone(timezone_name)
         return {
             "environment": app.config.get("ENVIRONMENT", "development"),
             "log_levels": log_manager.available_levels,
             "log_components": log_manager.available_components,
             "bank_brand_name": bank_name,
             "global_bank_settings": settings,
+            "app_settings": system_settings,
+            "active_timezone": timezone_name,
+            "active_timezone_label": timezone_label,
         }
 
     return app

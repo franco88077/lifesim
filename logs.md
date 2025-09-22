@@ -1,4 +1,16 @@
 # Lifesim change log
+## 2025-10-04
+- **What**: Added a global settings center with timezone controls and updated banking timelines to
+  respect the configured zone.
+- **How**: Introduced an `AppSettings` model with a dedicated settings blueprint, built a timezone
+  dropdown fed by curated offsets, wired runtime logging for updates, and converted banking charts,
+  anchor dates, and transaction labels through new timezone utilities while extending the navigation
+  with a Settings link.
+- **Why**: Chart data gaps stemmed from unopened accounts rather than offsets, but players still
+  needed a consistent timezone so performance trends, due dates, and logs stay in sync with their
+  locale.
+- **Purpose**: Centralises system-wide preferences, keeps every module aligned on one clock, and
+  prevents regional differences from hiding activity on insights, ledgers, or runtime diagnostics.
 ## 2025-10-03
 - **What**: Fixed banking insight charts to include every balance change on the day it occurs.
 - **How**: Switched balance timelines to use transaction timestamps, preserved intraday points when

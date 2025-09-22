@@ -9,6 +9,7 @@ from flask import current_app
 
 from .extensions import db
 from .models import SystemLog
+from .settings.services import convert_to_active_timezone
 
 
 @dataclass(frozen=True)
@@ -141,7 +142,8 @@ class LogManager:
         record = SystemLog.query.order_by(SystemLog.timestamp.desc()).first()
         if not record:
             return None
-        return record.timestamp.isoformat(timespec="seconds")
+        localized = convert_to_active_timezone(record.timestamp)
+        return localized.isoformat(timespec="seconds")
 
 
 log_manager = LogManager()

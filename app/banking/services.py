@@ -10,6 +10,7 @@ from sqlalchemy import func, inspect, select, text
 from sqlalchemy.orm import joinedload
 
 from ..extensions import db
+from ..settings.services import convert_to_active_timezone, current_date
 from .models import BankAccount, BankSettings, BankTransaction
 
 ZERO = Decimal("0.00")
@@ -346,7 +347,7 @@ def build_banking_state(
 def compute_next_anchor_date(anchor_day: int, *, today: date | None = None) -> date:
     """Return the next anchor date for the given day of the month."""
 
-    today = today or date.today()
+    today = today or current_date()
     year, month = today.year, today.month
     max_day = calendar.monthrange(year, month)[1]
     day = min(max(anchor_day, 1), max_day)
@@ -367,7 +368,7 @@ def compute_next_anchor_date(anchor_day: int, *, today: date | None = None) -> d
 def compute_previous_anchor_date(anchor_day: int, *, today: date | None = None) -> date:
     """Return the most recent anchor date on or before today."""
 
-    today = today or date.today()
+    today = today or current_date()
     year, month = today.year, today.month
     max_day = calendar.monthrange(year, month)[1]
     day = min(max(anchor_day, 1), max_day)
@@ -403,7 +404,7 @@ def estimate_interest_payout(
 ) -> Decimal:
     """Estimate the interest accrued for the current cycle using daily accrual."""
 
-    today = today or date.today()
+    today = today or current_date()
     next_anchor = compute_next_anchor_date(anchor_day, today=today)
     previous_anchor = compute_previous_anchor_date(anchor_day, today=today)
 
@@ -437,6 +438,11 @@ def build_account_due_items(
 
     checking_fee = quantize_amount(settings.checking_minimum_fee)
     savings_fee = quantize_amount(settings.savings_minimum_fee)
+
+    def localized_date(value: datetime | None) -> date | None:
+        if not value:
+            return None
+        return convert_to_active_timezone(value).date()
 
     def format_date(value: date | None) -> str:
         if not value:
@@ -605,7 +611,8 @@ def _aggregate_series(
 
     for point_date, value in series:
         if isinstance(point_date, datetime):
-            base_date = point_date.date()
+            localized = convert_to_active_timezone(point_date)
+            base_date = localized.date()
         else:
             base_date = point_date
         if period == "monthly":
@@ -626,9 +633,12 @@ def _serialize_series(
 
     serialized: list[dict[str, float | str]] = []
     for point_date, value in series:
-        serialized.append(
-            {"date": point_date.isoformat(), "value": decimal_to_number(value)}
-        )
+        if isinstance(point_date, datetime):
+            localized = convert_to_active_timezone(point_date)
+            date_value = localized.isoformat()
+        else:
+            date_value = point_date.isoformat()
+        serialized.append({"date": date_value, "value": decimal_to_number(value)})
     return serialized
 
 
@@ -809,7 +819,7 @@ def build_account_insights(
         "name": "Checking Account",
         "balance": format_currency(checking_balance),
         "opened": format_date(
-            checking_account.created_at.date() if checking_account else None
+            localized_date(checking_account.created_at) if checking_account else None
         ),
         "next_anchor": format_date(
             compute_next_anchor_date(settings.checking_anchor_day)
@@ -824,7 +834,7 @@ def build_account_insights(
         "name": "Savings Account",
         "balance": format_currency(savings_balance),
         "opened": format_date(
-            savings_account.created_at.date() if savings_account else None
+            localized_date(savings_account.created_at) if savings_account else None
         ),
         "next_anchor": format_date(
             compute_next_anchor_date(settings.savings_anchor_day)

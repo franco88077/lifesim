@@ -19,7 +19,11 @@ def console():
         user_summary="Log console opened for review.",
         technical_details="logging.console rendered detailed monitoring interface.",
     )
-    return render_template("logs/console.html", title="Lifesim — Logs")
+    return render_template(
+        "logs/console.html",
+        title="Lifesim — Logs",
+        active_nav="logs",
+    )
 
 
 @bp.route("/feed")
