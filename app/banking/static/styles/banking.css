@@ -300,9 +300,11 @@
 
 .account-card header h2 {
   margin: 0;
-  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  font-size: clamp(0.82rem, 1.25vw, 0.95rem);
   font-weight: 600;
   line-height: 1.3;
+  color: var(--muted);
+  letter-spacing: 0.02em;
 }
 
 .account-card__type {
