@@ -122,7 +122,7 @@
 }
 
 .account-activity__transactions h3,
-.account-activity__balances h3 {
+.account-activity__balances h4 {
   margin: 0;
 }
 
@@ -290,21 +290,12 @@
 
 .account-card {
   --summary-card-padding: clamp(0.95rem, 2.2vw, 1.3rem);
-  --summary-card-gap: 0.6rem;
+  --summary-card-gap: 0.3rem;
 }
 
 .account-card header {
   display: grid;
   gap: 0.25rem;
-}
-
-.account-card header h2 {
-  margin: 0;
-  font-size: clamp(0.82rem, 1.25vw, 0.95rem);
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--muted);
-  letter-spacing: 0.02em;
 }
 
 .account-card__type {
@@ -343,7 +334,7 @@
 
 .account-due__card {
   --summary-card-padding: 0.85rem 1rem;
-  --summary-card-gap: 0.4rem;
+  --summary-card-gap: 0.3rem;
 }
 
 .account-due__card header {
@@ -559,7 +550,7 @@
 
 .summary-card {
   --summary-card-padding: 1.25rem;
-  --summary-card-gap: 1rem;
+  --summary-card-gap: clamp(0.3rem, 0.7vw, 0.5rem);
   --summary-card-background: #f8fafc;
   --summary-card-border: #e4e9f1;
   border: 1px solid var(--summary-card-border);
