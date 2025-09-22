@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import calendar
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any, Iterable
 
@@ -549,8 +549,8 @@ def _transaction_delta(transaction: BankTransaction) -> Decimal:
 
 def _build_account_balance_series(
     account: BankAccount | None,
-) -> list[tuple[date, Decimal]]:
-    """Return dated balance snapshots for the provided account."""
+) -> list[tuple[datetime, Decimal]]:
+    """Return balance snapshots for the provided account using precise timestamps."""
 
     if not account:
         return []
@@ -568,24 +568,33 @@ def _build_account_balance_series(
         net_change += _transaction_delta(transaction)
 
     starting_balance = quantize_amount(current_balance - net_change)
-    timeline: dict[date, Decimal] = {}
-    start_date = account.created_at.date()
-    timeline[start_date] = starting_balance
+    timeline: list[tuple[datetime, Decimal]] = []
+
+    start_timestamp = account.created_at or account.updated_at
+    if start_timestamp is None:  # pragma: no cover - defensive guard
+        start_timestamp = datetime.utcnow()
+    timeline.append((start_timestamp, starting_balance))
 
     running = starting_balance
     for transaction in transactions:
         running = quantize_amount(running + _transaction_delta(transaction))
-        timeline[transaction.created_at.date()] = running
+        timeline.append((transaction.created_at, running))
 
-    final_reference_dates = list(timeline.keys()) + [account.updated_at.date()]
-    final_date = max(final_reference_dates)
-    timeline[final_date] = current_balance
+    final_timestamp = account.updated_at or (timeline[-1][0] if timeline else start_timestamp)
+    if final_timestamp:
+        last_timestamp, _ = timeline[-1]
+        if final_timestamp > last_timestamp:
+            timeline.append((final_timestamp, current_balance))
+        else:
+            timeline[-1] = (last_timestamp, current_balance)
 
-    return sorted(timeline.items())
+    timeline.sort(key=lambda entry: entry[0])
+
+    return timeline
 
 
 def _aggregate_series(
-    series: list[tuple[date, Decimal]], period: str
+    series: list[tuple[datetime | date, Decimal]], period: str
 ) -> list[tuple[date, Decimal]]:
     """Collapse a dated series to the requested cadence."""
 
@@ -595,30 +604,36 @@ def _aggregate_series(
     aggregated: dict[date, Decimal] = {}
 
     for point_date, value in series:
-        if period == "monthly":
-            key = date(point_date.year, point_date.month, 1)
-        elif period == "yearly":
-            key = date(point_date.year, 1, 1)
+        if isinstance(point_date, datetime):
+            base_date = point_date.date()
         else:
-            key = point_date
+            base_date = point_date
+        if period == "monthly":
+            key = date(base_date.year, base_date.month, 1)
+        elif period == "yearly":
+            key = date(base_date.year, 1, 1)
+        else:
+            key = base_date
         aggregated[key] = value
 
     return sorted(aggregated.items())
 
 
 def _serialize_series(
-    series: list[tuple[date, Decimal]],
+    series: list[tuple[datetime | date, Decimal]],
 ) -> list[dict[str, float | str]]:
     """Convert dated Decimal points into JSON-friendly dictionaries."""
 
-    return [
-        {"date": point_date.isoformat(), "value": decimal_to_number(value)}
-        for point_date, value in series
-    ]
+    serialized: list[dict[str, float | str]] = []
+    for point_date, value in series:
+        serialized.append(
+            {"date": point_date.isoformat(), "value": decimal_to_number(value)}
+        )
+    return serialized
 
 
 def _build_period_series(
-    series: list[tuple[date, Decimal]]
+    series: list[tuple[datetime | date, Decimal]]
 ) -> dict[str, list[dict[str, float | str]]]:
     """Return daily, monthly, and yearly aggregations for the series."""
 
@@ -630,8 +645,8 @@ def _build_period_series(
 
 
 def _combine_series(
-    series_list: list[list[tuple[date, Decimal]]]
-) -> list[tuple[date, Decimal]]:
+    series_list: list[list[tuple[datetime | date, Decimal]]]
+) -> list[tuple[datetime | date, Decimal]]:
     """Return a summed series using the most recent value per input series."""
 
     valid_series = [series for series in series_list if series]
@@ -658,8 +673,8 @@ def _combine_series(
 
 
 def _build_interest_series(
-    balance_series: list[tuple[date, Decimal]], rate: Decimal
-) -> dict[str, list[tuple[date, Decimal]]]:
+    balance_series: list[tuple[datetime | date, Decimal]], rate: Decimal
+) -> dict[str, list[tuple[datetime | date, Decimal]]]:
     """Return projected interest earnings across multiple cadences."""
 
     if not balance_series:
@@ -670,7 +685,7 @@ def _build_interest_series(
     monthly_rate = percentage / Decimal("100") / Decimal("12")
     yearly_rate = percentage / Decimal("100")
 
-    daily_points: list[tuple[date, Decimal]] = []
+    daily_points: list[tuple[datetime | date, Decimal]] = []
     monthly_points: dict[date, Decimal] = {}
     yearly_points: dict[date, Decimal] = {}
 
@@ -680,10 +695,15 @@ def _build_interest_series(
             (point_date, quantize_amount(balance_value * daily_rate))
         )
 
-        month_key = date(point_date.year, point_date.month, 1)
+        if isinstance(point_date, datetime):
+            base_date = point_date.date()
+        else:
+            base_date = point_date
+
+        month_key = date(base_date.year, base_date.month, 1)
         monthly_points[month_key] = quantize_amount(balance_value * monthly_rate)
 
-        year_key = date(point_date.year, 1, 1)
+        year_key = date(base_date.year, 1, 1)
         yearly_points[year_key] = quantize_amount(balance_value * yearly_rate)
 
     return {

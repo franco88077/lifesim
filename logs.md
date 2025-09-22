@@ -1,4 +1,12 @@
 # Lifesim change log
+## 2025-10-03
+- **What**: Fixed banking insight charts to include every balance change on the day it occurs.
+- **How**: Switched balance timelines to use transaction timestamps, preserved intraday points when
+  serialising chart data, and updated the aggregation helpers to handle datetime-aware series.
+- **Why**: Same-day openings and transfers only left a single data point, so the Performance Trend
+  charts ignored recent activity.
+- **Purpose**: Keeps the insight graphs trustworthy by reflecting every transaction across the selected
+  timeframe, making it easier to verify moves in or out of accounts.
 ## 2025-10-02
 - **What**: Added interactive banking insight charts with timeframe controls for balances and APY earnings.
 - **How**: Generated daily, monthly, and yearly series in `build_account_insights`, rendered a new chart panel with Chart.js, styled the selector UI, and wired client-side logic for smooth switching.
