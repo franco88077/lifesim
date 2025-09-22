@@ -1,7 +1,13 @@
 {% extends "layouts/base.html" %}
 
 {% macro render_job_card(job) %}
-  <article class="job-card" data-job-status="{{ job.status }}">
+  <article
+    class="job-card"
+    data-job-card
+    data-job-id="{{ job.id }}"
+    data-job-type="{{ job.pay_type }}"
+    data-job-status="{{ job.status }}"
+  >
     <header class="job-card__header">
       <div class="job-card__titles">
         <h3>{{ job.title }}</h3>
@@ -20,15 +26,31 @@
       </div>
       <div>
         <dt>Remaining today</dt>
-        <dd>{{ job.remaining_display }}</dd>
+        <dd data-job-remaining>{{ job.remaining_display }}</dd>
       </div>
       <div>
         <dt>Status</dt>
-        <dd class="job-card__status job-card__status--{{ job.status }}">{{ job.status_label }}</dd>
+        <dd class="job-card__status job-card__status--{{ job.status }}" data-job-status-label>
+          {{ job.status_label }}
+        </dd>
       </div>
     </dl>
     <footer class="job-card__footer">
-      <p class="job-card__note">{{ job.note }}</p>
+      <div class="job-card__actions" data-job-actions>
+        <div class="job-card__shift" data-job-shift hidden>
+          <span class="job-card__timer" data-job-timer>00:00:00</span>
+          <span class="job-card__earnings" data-job-earnings>{{ job.active_session_earnings_display }}</span>
+        </div>
+        <div class="job-card__buttons">
+          <button type="button" class="job-card__button" data-job-start hidden>Start Job</button>
+          <button type="button" class="job-card__button" data-job-pause hidden>Pause Job</button>
+          <button type="button" class="job-card__button job-card__button--primary" data-job-complete>
+            Complete Job
+          </button>
+        </div>
+        <p class="job-card__message" data-job-message aria-live="polite"></p>
+      </div>
+      <p class="job-card__note" data-job-note>{{ job.note }}</p>
       <p class="job-card__reset">Resets {{ job.reset_label }}</p>
     </footer>
   </article>
@@ -39,7 +61,7 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{{ url_for('job.static', filename='js/job.js') }}" defer></script>
+  <script src="{{ url_for('job.static', filename='js/job_board.js') }}" defer></script>
 {% endblock %}
 
 {% block content %}
@@ -77,15 +99,15 @@
       </header>
       <div class="job-hero__summary">
         <article class="job-stat">
-          <h2>{{ summary.available }}</h2>
+          <h2 data-job-summary="available">{{ summary.available }}</h2>
           <p>Available today</p>
         </article>
         <article class="job-stat">
-          <h2>{{ summary.time }}</h2>
+          <h2 data-job-summary="time">{{ summary.time }}</h2>
           <p>Time-based roles</p>
         </article>
         <article class="job-stat">
-          <h2>{{ summary.task }}</h2>
+          <h2 data-job-summary="task">{{ summary.task }}</h2>
           <p>Task-based gigs</p>
         </article>
       </div>
@@ -134,6 +156,34 @@
         <p class="job-empty">No jobs are available yet. Visit Manage Jobs to create your first listing.</p>
       {% endif %}
     </section>
+  </div>
+
+  <script
+    type="application/json"
+    id="job-board-data"
+  >{{ {'jobs': jobs, 'settings': settings, 'payout_options': payout_options} | tojson }}</script>
+
+  <div class="job-modal" data-job-modal hidden>
+    <div class="job-modal__dialog" role="dialog" aria-modal="true">
+      <div class="job-modal__header">
+        <h2 data-job-modal-title></h2>
+        <button type="button" class="job-modal__close" data-job-modal-close aria-label="Close">&times;</button>
+      </div>
+      <form class="job-modal__form" data-job-modal-form novalidate>
+        <p class="job-modal__message" data-job-modal-message></p>
+        <fieldset class="job-modal__options" data-job-modal-options hidden>
+          <legend>Choose how to receive payment</legend>
+          <div class="job-modal__options-list" data-job-modal-options-list></div>
+        </fieldset>
+        <p class="job-modal__error" data-job-modal-error aria-live="polite"></p>
+        <div class="job-modal__actions">
+          <button type="button" class="job-modal__button" data-job-modal-cancel>Cancel</button>
+          <button type="submit" class="job-modal__button job-modal__button--primary" data-job-modal-confirm>
+            Confirm
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 {% endblock %}
 

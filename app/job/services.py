@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, ROUND_UP
 from typing import ClassVar
 
 
@@ -55,6 +55,7 @@ class JobSettings:
     minimum_hourly_wage: Decimal = Decimal("15.00")
     default_daily_limit: int = 3
     limit_reset_hour: int = 0
+    payroll_company_name: str = "Lifesim Career Services"
 
     def to_dict(self) -> dict[str, object]:
         """Serialize settings for templates and JSON responses."""
@@ -70,6 +71,7 @@ class JobSettings:
                     _format_reset_label(self.limit_reset_hour)
                 )
             ),
+            "payroll_company_name": self.payroll_company_name,
         }
 
 
@@ -86,6 +88,8 @@ class Job:
     completions_today: int = 0
     last_reset: datetime = field(default_factory=_now)
     minimum_applied: bool = False
+    active_session_started_at: datetime | None = None
+    active_session_seconds: int = 0
 
     def __post_init__(self) -> None:
         """Ensure stored values remain normalized."""
@@ -95,6 +99,7 @@ class Job:
         if self.daily_limit is not None and self.daily_limit <= 0:
             self.daily_limit = None
         self.last_reset = self.last_reset or _now()
+        self.active_session_seconds = max(int(self.active_session_seconds), 0)
 
     @property
     def has_limit(self) -> bool:
@@ -129,6 +134,53 @@ class Job:
         if self.last_reset < boundary:
             self.completions_today = 0
             self.last_reset = boundary
+            self.reset_session()
+
+    @property
+    def is_session_active(self) -> bool:
+        """Return True when a time-based session is actively running."""
+
+        return self.active_session_started_at is not None
+
+    def start_session(self) -> None:
+        """Begin tracking time for a time-based job."""
+
+        if self.is_session_active:
+            raise ValueError("Job already has an active session.")
+        self.active_session_started_at = _now()
+
+    def pause_session(self) -> None:
+        """Pause the current session and accumulate elapsed seconds."""
+
+        if not self.is_session_active:
+            return
+        elapsed = int((_now() - self.active_session_started_at).total_seconds())
+        self.active_session_seconds = max(self.active_session_seconds + max(elapsed, 0), 0)
+        self.active_session_started_at = None
+
+    def reset_session(self) -> None:
+        """Clear any tracked session progress."""
+
+        self.active_session_started_at = None
+        self.active_session_seconds = 0
+
+    def total_session_seconds(self) -> int:
+        """Return accumulated seconds including the active session."""
+
+        total = self.active_session_seconds
+        if self.is_session_active:
+            total += max(int((_now() - self.active_session_started_at).total_seconds()), 0)
+        return max(total, 0)
+
+    def calculate_session_earnings(self) -> Decimal:
+        """Compute earnings for the tracked session rounded up to cents."""
+
+        seconds = self.total_session_seconds()
+        if seconds <= 0:
+            return Decimal("0.00")
+        hours = Decimal(seconds) / Decimal(3600)
+        amount = hours * self.pay_rate
+        return amount.quantize(Decimal("0.01"), rounding=ROUND_UP)
 
     def to_dict(self, settings: JobSettings) -> dict[str, object]:
         """Return job details for both templates and JSON consumers."""
@@ -170,6 +222,15 @@ class Job:
         else:
             note = "Task-based work pays this amount each completion."
 
+        session_seconds = self.active_session_seconds
+        session_started_at = self.active_session_started_at
+        if session_started_at and session_seconds < 0:
+            session_seconds = 0
+        total_session_seconds = self.total_session_seconds() if is_time_based else 0
+        session_earnings = (
+            self.calculate_session_earnings() if is_time_based else Decimal("0.00")
+        )
+
         return {
             "id": self.id,
             "title": self.title,
@@ -190,6 +251,16 @@ class Job:
             "reset_label": _format_reset_label(settings.limit_reset_hour),
             "note": note,
             "minimum_applied": self.minimum_applied,
+            "active_session_seconds": session_seconds,
+            "active_session_total_seconds": total_session_seconds,
+            "active_session_started_at": (
+                session_started_at.isoformat() if session_started_at else None
+            ),
+            "active_session_earnings": float(session_earnings),
+            "active_session_earnings_display": _format_currency(session_earnings)
+            if is_time_based
+            else _format_currency(Decimal("0.00")),
+            "is_session_active": self.is_session_active,
         }
 
 
@@ -281,6 +352,8 @@ class JobRepository:
             normalized_type == "time"
             and normalized_rate == cls._settings.minimum_hourly_wage
         )
+        if normalized_type != "time":
+            job.reset_session()
         return job
 
     @classmethod
@@ -302,6 +375,7 @@ class JobRepository:
         minimum_hourly_wage: Decimal | float | str | None = None,
         default_daily_limit: int | None = None,
         daily_reset_hour: int | None = None,
+        payroll_company_name: str | None = None,
     ) -> JobSettings:
         """Update job configuration and enforce new rules."""
 
@@ -322,6 +396,12 @@ class JobRepository:
                 raise ValueError("Reset hour must be between 0 and 23.")
             cls._settings.limit_reset_hour = daily_reset_hour
             cls._refresh_limits(force=True)
+
+        if payroll_company_name is not None:
+            company = payroll_company_name.strip()
+            if not company:
+                raise ValueError("Provide a company name for job payments.")
+            cls._settings.payroll_company_name = company
 
         return cls._settings
 
@@ -416,6 +496,7 @@ class JobRepository:
                 job.last_reset = _resolve_reset_boundary(_now(), reset_hour)
                 if job.has_limit:
                     job.completions_today = min(job.completions_today, job.daily_limit or 0)
+                job.reset_session()
             job.refresh_limit(reset_hour=reset_hour)
 
     @classmethod
@@ -427,6 +508,72 @@ class JobRepository:
                 job.minimum_applied = True
             elif job.pay_type == "time":
                 job.minimum_applied = job.pay_rate == minimum
+
+    @classmethod
+    def start_time_job(cls, job_id: str) -> Job:
+        """Begin or resume a time-based job session."""
+
+        job = cls._jobs.get(job_id)
+        if job is None:
+            raise KeyError(job_id)
+        if job.pay_type != "time":
+            raise ValueError("Only time-based jobs can be started.")
+        if job.is_session_active:
+            raise ValueError("This job is already running.")
+        remaining = job.remaining_today
+        if remaining == 0:
+            raise ValueError("This job has reached its daily limit.")
+        job.start_session()
+        return job
+
+    @classmethod
+    def pause_time_job(cls, job_id: str) -> Job:
+        """Pause an active time-based job session."""
+
+        job = cls._jobs.get(job_id)
+        if job is None:
+            raise KeyError(job_id)
+        if job.pay_type != "time":
+            raise ValueError("Only time-based jobs can be paused.")
+        if not job.is_session_active:
+            raise ValueError("This job is not currently running.")
+        job.pause_session()
+        return job
+
+    @classmethod
+    def complete_job(cls, job_id: str) -> tuple[Job, Decimal]:
+        """Mark a job as complete and return the earnings."""
+
+        job = cls._jobs.get(job_id)
+        if job is None:
+            raise KeyError(job_id)
+
+        if job.pay_type == "task":
+            return cls._complete_task_job(job)
+        if job.pay_type == "time":
+            return cls._complete_time_job(job)
+        raise ValueError("Unsupported job type.")
+
+    @staticmethod
+    def _complete_task_job(job: Job) -> tuple[Job, Decimal]:
+        if not job.is_available:
+            raise ValueError("No remaining task completions are available today.")
+        job.completions_today += 1
+        return job, job.pay_rate
+
+    @staticmethod
+    def _complete_time_job(job: Job) -> tuple[Job, Decimal]:
+        if job.is_session_active:
+            job.pause_session()
+        total_seconds = job.total_session_seconds()
+        if total_seconds <= 0:
+            raise ValueError("Start the job before completing it.")
+        if job.has_limit and job.remaining_today == 0 and total_seconds <= 0:
+            raise ValueError("This job has reached its daily limit.")
+        earnings = job.calculate_session_earnings()
+        job.reset_session()
+        job.completions_today += 1
+        return job, earnings
 
 
 # Seed the repository with initial data when the module loads.

@@ -58,7 +58,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  const applySettingsToForm = (settings, { rateInput, dailyLimitInput, minimumNote } = {}) => {
+  const applySettingsToForm = (
+    settings,
+    { rateInput, dailyLimitInput, minimumNote, companyInput } = {}
+  ) => {
     if (!settings || typeof settings !== "object") {
       return;
     }
@@ -80,6 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (minimumNote && settings.minimum_hourly_wage_display) {
       minimumNote.textContent = `This rate must meet the minimum wage of ${settings.minimum_hourly_wage_display}.`;
+    }
+
+    if (companyInput && settings.payroll_company_name !== undefined) {
+      companyInput.value = settings.payroll_company_name;
     }
 
     updateResetText(settings.daily_reset_label);
@@ -433,6 +440,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const settingsForm = document.querySelector("[data-job-settings-form]");
   const settingsMessage = settingsForm?.querySelector("[data-job-settings-message]");
+  const companyNameInput = settingsForm?.querySelector("[data-job-company-name]");
 
   const showSettingsMessage = (text, tone = "info") => {
     if (!settingsMessage) {
@@ -449,9 +457,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const formData = new FormData(settingsForm);
+    const companyName = String(formData.get("payroll_company_name") || "").trim();
     const minimumWage = Number(formData.get("minimum_hourly_wage"));
     const defaultLimitRaw = formData.get("default_daily_limit");
     const resetHour = Number.parseInt(formData.get("daily_reset_hour"), 10);
+
+    if (!companyName) {
+      showSettingsMessage("Enter a company name for job payments.", "error");
+      return;
+    }
 
     if (!Number.isFinite(minimumWage) || minimumWage <= 0) {
       showSettingsMessage("Minimum wage must be greater than zero.", "error");
@@ -459,6 +473,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const payload = {
+      payroll_company_name: companyName,
       minimum_hourly_wage: minimumWage,
       default_daily_limit: null,
       daily_reset_hour: resetHour,
@@ -483,7 +498,13 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    applySettingsToForm(response.settings, { rateInput, dailyLimitInput, minimumNote });
+    applySettingsToForm(response.settings, {
+      rateInput,
+      dailyLimitInput,
+      minimumNote,
+      companyInput: companyNameInput,
+    });
+    state.settings = response.settings;
     if (rateInput) {
       updateRateCopy();
     }
@@ -492,6 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (settingsForm) {
     if (state.settings) {
+      applySettingsToForm(state.settings, { companyInput: companyNameInput });
       updateResetText(state.settings.daily_reset_label);
     }
     settingsForm.addEventListener("submit", handleSettingsSubmit);
