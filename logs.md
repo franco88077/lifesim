@@ -1,4 +1,9 @@
 # Lifesim change log
+## 2025-10-05
+- **What**: Restored the banking insights view by sharing the timezone-aware date formatter across helpers.
+- **How**: Promoted the `localized_date` utility to module scope and reused it from insight builders while trimming the redundant nested version.
+- **Why**: The insights route crashed with a `NameError` after recent refactors, preventing players from reviewing account summaries and charts.
+- **Purpose**: Keeps the insights dashboard stable so creation dates, anchor reminders, and series data render without errors.
 ## 2025-10-04
 - **What**: Added a global settings center with timezone controls and updated banking timelines to
   respect the configured zone.

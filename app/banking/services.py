@@ -134,6 +134,14 @@ def decimal_to_number(value: Decimal | float | int) -> float:
     return float(value)
 
 
+def localized_date(value: datetime | None) -> date | None:
+    """Convert a stored datetime to the active timezone's date."""
+
+    if not value:
+        return None
+    return convert_to_active_timezone(value).date()
+
+
 def ensure_bank_defaults() -> BankSettings:
     """Ensure banking defaults exist before interacting with the system."""
 
@@ -438,11 +446,6 @@ def build_account_due_items(
 
     checking_fee = quantize_amount(settings.checking_minimum_fee)
     savings_fee = quantize_amount(settings.savings_minimum_fee)
-
-    def localized_date(value: datetime | None) -> date | None:
-        if not value:
-            return None
-        return convert_to_active_timezone(value).date()
 
     def format_date(value: date | None) -> str:
         if not value:
