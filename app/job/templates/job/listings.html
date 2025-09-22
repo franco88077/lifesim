@@ -1,0 +1,139 @@
+{% extends "layouts/base.html" %}
+
+{% macro render_job_card(job) %}
+  <article class="job-card" data-job-status="{{ job.status }}">
+    <header class="job-card__header">
+      <div class="job-card__titles">
+        <h3>{{ job.title }}</h3>
+        <span class="job-card__tag">{{ job.pay_type_label }}</span>
+      </div>
+      <div class="job-card__rate" aria-label="Pay rate">
+        <span class="job-card__rate-amount">{{ job.rate_display }}</span>
+        <span class="job-card__rate-label">{{ job.rate_unit_label }}</span>
+      </div>
+    </header>
+    <p class="job-card__description">{{ job.description }}</p>
+    <dl class="job-card__meta">
+      <div>
+        <dt>Daily availability</dt>
+        <dd>{{ job.daily_limit_display }}</dd>
+      </div>
+      <div>
+        <dt>Remaining today</dt>
+        <dd>{{ job.remaining_display }}</dd>
+      </div>
+      <div>
+        <dt>Status</dt>
+        <dd class="job-card__status job-card__status--{{ job.status }}">{{ job.status_label }}</dd>
+      </div>
+    </dl>
+    <footer class="job-card__footer">
+      <p class="job-card__note">{{ job.note }}</p>
+      <p class="job-card__reset">Resets {{ job.reset_label }}</p>
+    </footer>
+  </article>
+{% endmacro %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('job.static', filename='styles/job.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('job.static', filename='js/job.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <div class="job-shell">
+    <section class="job-subnav" aria-label="Job navigation">
+      <nav class="job-tabs">
+        <a
+          href="{{ url_for('job.listings') }}"
+          class="job-tab{% if active_job_tab == 'listings' %} is-active{% endif %}"
+          {% if active_job_tab == 'listings' %}aria-current="page"{% endif %}
+        >
+          Job Listings
+        </a>
+        <a
+          href="{{ url_for('job.manage') }}"
+          class="job-tab{% if active_job_tab == 'manage' %} is-active{% endif %}"
+          {% if active_job_tab == 'manage' %}aria-current="page"{% endif %}
+        >
+          Manage Jobs
+        </a>
+        <a
+          href="{{ url_for('job.job_settings') }}"
+          class="job-tab{% if active_job_tab == 'settings' %} is-active{% endif %}"
+          {% if active_job_tab == 'settings' %}aria-current="page"{% endif %}
+        >
+          Job Settings
+        </a>
+      </nav>
+    </section>
+
+    <section class="job-hero" aria-label="Job overview">
+      <header class="job-hero__header">
+        <h1>Work Opportunities</h1>
+        <p>Pick up shifts or complete focused gigs to earn money in Lifesim.</p>
+      </header>
+      <div class="job-hero__summary">
+        <article class="job-stat">
+          <h2>{{ summary.available }}</h2>
+          <p>Available today</p>
+        </article>
+        <article class="job-stat">
+          <h2>{{ summary.time }}</h2>
+          <p>Time-based roles</p>
+        </article>
+        <article class="job-stat">
+          <h2>{{ summary.task }}</h2>
+          <p>Task-based gigs</p>
+        </article>
+      </div>
+      <p class="job-hero__note">Daily limits refresh at {{ settings.daily_reset_label }}.</p>
+    </section>
+
+    <section class="job-board" aria-label="Job listings">
+      {% if jobs %}
+        {% if time_jobs %}
+          <section class="job-group" aria-label="Time-based jobs">
+            <header class="job-group__header">
+              <h2>Time-based roles</h2>
+              <p>Earn at least {{ settings.minimum_hourly_wage_display }} per hour while working shifts.</p>
+            </header>
+            <div class="job-grid">
+              {% for job in time_jobs %}
+                {{ render_job_card(job) }}
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+
+        {% if task_jobs %}
+          <section class="job-group" aria-label="Task-based jobs">
+            <header class="job-group__header">
+              <h2>Task-based gigs</h2>
+              <p>Complete focused tasks and receive fixed payouts for every successful delivery.</p>
+            </header>
+            <div class="job-grid">
+              {% for job in task_jobs %}
+                {{ render_job_card(job) }}
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+
+        <aside class="job-guidance" aria-label="Job system guidance">
+          <h3>How jobs work</h3>
+          <ul>
+            <li>Jobs with limits reset each day at {{ settings.daily_reset_label }}.</li>
+            <li>Time-based roles must meet the minimum wage of {{ settings.minimum_hourly_wage_display }}.</li>
+            <li>Use Manage Jobs to add more opportunities tailored to your playthrough.</li>
+          </ul>
+        </aside>
+      {% else %}
+        <p class="job-empty">No jobs are available yet. Visit Manage Jobs to create your first listing.</p>
+      {% endif %}
+    </section>
+  </div>
+{% endblock %}
+

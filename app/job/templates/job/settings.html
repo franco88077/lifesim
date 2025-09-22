@@ -1,0 +1,112 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('job.static', filename='styles/job.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('job.static', filename='js/job.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <div class="job-shell">
+    <section class="job-subnav" aria-label="Job navigation">
+      <nav class="job-tabs">
+        <a
+          href="{{ url_for('job.listings') }}"
+          class="job-tab{% if active_job_tab == 'listings' %} is-active{% endif %}"
+        >
+          Job Listings
+        </a>
+        <a
+          href="{{ url_for('job.manage') }}"
+          class="job-tab{% if active_job_tab == 'manage' %} is-active{% endif %}"
+        >
+          Manage Jobs
+        </a>
+        <a
+          href="{{ url_for('job.job_settings') }}"
+          class="job-tab{% if active_job_tab == 'settings' %} is-active{% endif %}"
+          aria-current="page"
+        >
+          Job Settings
+        </a>
+      </nav>
+    </section>
+
+    <section class="job-settings" aria-label="Job configuration">
+      <header class="job-settings__header">
+        <h1>Job Settings</h1>
+        <p>Adjust default values that influence how jobs behave across the simulator.</p>
+      </header>
+
+      <div class="job-settings__grid">
+        <form class="job-settings__form" data-job-settings-form novalidate>
+          <div class="job-settings__message" data-job-settings-message aria-live="polite"></div>
+          <label class="job-settings__field">
+            <span>Minimum hourly wage</span>
+            <div class="job-form__input-group">
+              <span class="job-form__prefix">$</span>
+              <input
+                type="number"
+                name="minimum_hourly_wage"
+                step="0.25"
+                min="0"
+                value="{{ settings.minimum_hourly_wage }}"
+                required
+              />
+            </div>
+            <p class="job-form__hint">Applied automatically to every time-based job.</p>
+          </label>
+
+          <label class="job-settings__field">
+            <span>Default daily limit suggestion</span>
+            <input
+              type="number"
+              name="default_daily_limit"
+              min="0"
+              value="{{ settings.default_daily_limit }}"
+            />
+            <p class="job-form__hint">Displayed as a placeholder when creating new jobs.</p>
+          </label>
+
+          <label class="job-settings__field">
+            <span>Daily reset time</span>
+            <select name="daily_reset_hour" required>
+              {% for hour in range(0, 24) %}
+                {% set display_hour = hour % 12 %}
+                {% if display_hour == 0 %}{% set display_hour = 12 %}{% endif %}
+                {% set suffix = 'AM' if hour < 12 else 'PM' %}
+                <option value="{{ hour }}" {% if hour == settings.daily_reset_hour %}selected{% endif %}>
+                  {{ '%02d' % display_hour }}:00 {{ suffix }}
+                </option>
+              {% endfor %}
+            </select>
+            <p class="job-form__hint">Jobs with limits reset at this time each day.</p>
+          </label>
+
+          <div class="job-settings__actions">
+            <button type="submit">Save settings</button>
+          </div>
+        </form>
+
+        <aside class="job-settings__summary" aria-label="Job roster summary">
+          {% set total_jobs = jobs | length %}
+          {% set time_jobs = jobs | selectattr('pay_type', 'equalto', 'time') | list %}
+          {% set task_jobs = jobs | selectattr('pay_type', 'equalto', 'task') | list %}
+          <h2>Current job roster</h2>
+          <p>{{ total_jobs }} job{{ '' if total_jobs == 1 else 's' }} posted.</p>
+          <ul>
+            <li>{{ time_jobs | length }} time-based role{{ '' if time_jobs | length == 1 else 's' }}.</li>
+            <li>{{ task_jobs | length }} task-based gig{{ '' if task_jobs | length == 1 else 's' }}.</li>
+            <li data-reset-preview>
+              Limits refresh daily at <span data-reset-text>{{ settings.daily_reset_label }}</span>.
+            </li>
+          </ul>
+          <p class="job-settings__note">Update settings to keep progression balanced as your economy grows.</p>
+        </aside>
+      </div>
+    </section>
+  </div>
+{% endblock %}
+
