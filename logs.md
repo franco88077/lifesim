@@ -1,4 +1,9 @@
 # Lifesim change log
+## 2025-10-02
+- **What**: Added interactive banking insight charts with timeframe controls for balances and APY earnings.
+- **How**: Generated daily, monthly, and yearly series in `build_account_insights`, rendered a new chart panel with Chart.js, styled the selector UI, and wired client-side logic for smooth switching.
+- **Why**: Players needed quick, uncluttered access to checking, savings, total cash, and interest trends without paging through transaction lists.
+- **Purpose**: Gives users focused visual insight into their money movement and growth so planning transfers or deposits stays fast and informed.
 ## 2025-10-01
 - **What**: Unified the styling of banking insight, account, and settings cards and brought the settings overview inline with other banking pages.
 - **How**: Created a reusable `summary-card` pattern with configurable CSS variables, applied it to insights, due summaries, account balances, and closure controls, and swapped the standalone settings intro for the shared banking overview header.

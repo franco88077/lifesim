@@ -51,6 +51,52 @@
       </header>
       {% if has_bank_accounts %}
         <div class="insights-layout">
+          {% set available_charts = account_insights.charts | selectattr('is_available') | list %}
+          {% if available_charts %}
+            {% set default_chart = available_charts[0] %}
+            <section class="insight-panel" aria-label="Account performance charts">
+              <header class="insight-panel__header">
+                <h2>Performance Trends</h2>
+                <p>
+                  Compare balances and savings growth with instant views by day, month, or year—no slow scrolling required.
+                </p>
+              </header>
+              <div class="insight-chart" data-insight-chart>
+                <div class="insight-chart__controls">
+                  <label class="insight-chart__focus" for="insight-chart-focus">
+                    Chart focus
+                    <select id="insight-chart-focus" data-chart-focus>
+                      {% for chart in account_insights.charts %}
+                        <option
+                          value="{{ chart.slug }}"
+                          {% if not chart.is_available %}disabled{% endif %}
+                          {% if chart.slug == default_chart.slug %}selected{% endif %}
+                        >
+                          {{ chart.name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </label>
+                  <div class="insight-chart__ranges" role="group" aria-label="Timeframe selection">
+                    <button type="button" data-chart-range="daily" aria-pressed="true">Per Day</button>
+                    <button type="button" data-chart-range="monthly" aria-pressed="false">Per Month</button>
+                    <button type="button" data-chart-range="yearly" aria-pressed="false">Per Year</button>
+                  </div>
+                </div>
+                <div class="insight-chart__summary">
+                  <p class="insight-chart__description" data-chart-description>{{ default_chart.description }}</p>
+                  <p class="insight-chart__value" data-chart-value aria-live="polite">—</p>
+                </div>
+                <div class="insight-chart__canvas">
+                  <canvas id="insight-chart-canvas" role="img" aria-label="Account performance chart"></canvas>
+                  <p class="insight-chart__empty" data-chart-empty hidden>Data is not available for this selection yet.</p>
+                </div>
+              </div>
+              <script type="application/json" id="insight-chart-data">
+                {{ account_insights.charts | tojson }}
+              </script>
+            </section>
+          {% endif %}
           {% if insight_accounts %}
             <section class="insight-panel" aria-label="Anchor dates">
               <header class="insight-panel__header">
@@ -135,4 +181,9 @@
       {% endif %}
     </section>
   </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+  <script src="{{ url_for('banking.static', filename='js/banking_insights.js') }}" defer></script>
 {% endblock %}
