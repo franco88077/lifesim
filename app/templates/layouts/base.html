@@ -18,9 +18,9 @@
         <nav id="primary-nav" class="primary-nav" aria-label="Main navigation">
           <a href="{{ url_for('index.home') }}" class="nav-item{% if active_nav == 'home' %} active{% endif %}">Home</a>
           <a href="{{ url_for('banking.home') }}" class="nav-item{% if active_nav == 'banking' %} active{% endif %}">Banking</a>
+          <a href="{{ url_for('job.workspace') }}" class="nav-item{% if active_nav == 'job' %} active{% endif %}">Job</a>
           <a href="{{ url_for('real_estate.portfolio') }}" class="nav-item{% if active_nav == 'real_estate' %} active{% endif %}">Real Estate</a>
           <a href="{{ url_for('shop.catalog') }}" class="nav-item{% if active_nav == 'shop' %} active{% endif %}">Shop</a>
-          <a href="{{ url_for('job.workspace') }}" class="nav-item{% if active_nav == 'job' %} active{% endif %}">Job</a>
           <a
             href="{{ url_for('logging.console') }}"
             class="nav-item{% if active_nav == 'logs' %} active{% endif %}"

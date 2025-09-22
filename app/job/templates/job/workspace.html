@@ -9,55 +9,261 @@
 {% endblock %}
 
 {% block content %}
-  <section class="job-hero">
-    <header>
-      <h1>Lifesim — Job</h1>
-      <p>Structure your workweek, track momentum, and celebrate progress.</p>
-    </header>
-    <div class="hero-insight">
-      <p>Next milestone</p>
-      <strong>{{ milestones[0].name }}</strong>
-      <span>{{ milestones[0].deadline }}</span>
-      <p>Weekly total</p>
-      <span id="weekly-total" class="weekly-total" aria-live="polite"></span>
-    </div>
-  </section>
+  <div class="job-shell">
+    <section class="job-hero">
+      <header>
+        <h1>Lifesim — Job</h1>
+        <p>Structure your workweek, track momentum, and celebrate progress.</p>
+      </header>
+      <div class="hero-insight">
+        <p>Next milestone</p>
+        <strong>{{ milestones[0].name }}</strong>
+        <span>{{ milestones[0].deadline }}</span>
+        <p>Weekly total</p>
+        <span id="weekly-total" class="weekly-total" aria-live="polite"></span>
+      </div>
+    </section>
 
-  <section class="schedule" aria-label="Shift schedule">
-    <header>
-      <h2>Shifts</h2>
-      <button type="button" class="hours-toggle">Expand hours</button>
-    </header>
-    <table class="schedule__table">
-      <thead>
-        <tr>
-          <th scope="col">Day</th>
-          <th scope="col">Hours</th>
-          <th scope="col">Activity</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for shift in shifts %}
-          <tr data-hours="{{ shift.hours }}">
-            <td data-label="Day">{{ shift.day }}</td>
-            <td data-label="Hours">{{ shift.hours }}</td>
-            <td data-label="Activity">{{ shift.activity }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
+    <section class="job-subnav" aria-label="Job navigation">
+      <nav class="job-tabs">
+        <a
+          href="#job-add"
+          class="job-tab is-active"
+          data-job-tab="add"
+          aria-current="page"
+        >
+          Add Job
+        </a>
+        <a href="#job-manage" class="job-tab" data-job-tab="manage">Manage Jobs</a>
+        <a href="#job-settings" class="job-tab" data-job-tab="settings">Job Settings</a>
+      </nav>
+    </section>
 
-  <section class="milestones" aria-label="Career milestones">
-    <h2>Milestones</h2>
-    <div class="milestones__grid">
-      {% for milestone in milestones %}
-        <article class="milestone" data-status="{{ milestone.status }}">
-          <h3>{{ milestone.name }}</h3>
-          <p>Deadline: {{ milestone.deadline }}</p>
-          <p>Status: {{ milestone.status }}</p>
-        </article>
-      {% endfor %}
+    <div class="job-panels">
+      <section
+        class="job-panel is-active"
+        id="job-add"
+        data-job-panel="add"
+        aria-label="Add job"
+      >
+        <header class="job-panel__header">
+          <h2>Available opportunities</h2>
+          <p>Choose new work that fits your schedule and keeps your income diversified.</p>
+        </header>
+        <div class="job-list" role="list">
+          {% for job in job_catalog %}
+            <article class="job-card" data-job="{{ job.id }}" role="listitem">
+              <header class="job-card__header">
+                <h3>{{ job.title }}</h3>
+                <p class="job-card__meta">{{ job.type }}</p>
+              </header>
+              <p class="job-card__description">{{ job.description }}</p>
+              <div class="job-card__details">
+                <span class="job-card__rate">{{ job.rate }}</span>
+                <div class="job-card__skills" aria-label="Key skills">
+                  {% for skill in job.skills %}
+                    <span class="job-card__skill">{{ skill }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+              <footer class="job-card__footer">
+                <button type="button" class="job-card__cta" data-log-action="select-job">
+                  Select job
+                </button>
+                <button type="button" class="job-card__cta job-card__cta--secondary" data-log-action="save-job">
+                  Save for later
+                </button>
+              </footer>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section
+        class="job-panel"
+        id="job-manage"
+        data-job-panel="manage"
+        aria-label="Manage jobs"
+        hidden
+      >
+        <header class="job-panel__header">
+          <h2>Manage jobs</h2>
+          <p>Reorder commitments, update statuses, and balance your available hours.</p>
+        </header>
+        <div class="job-manage__grid">
+          <section class="job-roster" aria-label="Managed job roster">
+            <header class="job-roster__header">
+              <h3>Active roster</h3>
+              <button type="button" class="job-roster__add">Add new job</button>
+            </header>
+            <table class="job-roster__table">
+              <thead>
+                <tr>
+                  <th scope="col">Job</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Pay</th>
+                  <th scope="col">Weekly hours</th>
+                  <th scope="col" class="job-roster__actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for managed_job in managed_jobs %}
+                  <tr>
+                    <th scope="row">{{ managed_job.title }}</th>
+                    <td>{{ managed_job.status }}</td>
+                    <td>{{ managed_job.rate }}</td>
+                    <td>{{ managed_job.hours }}</td>
+                    <td class="job-roster__actions">
+                      <button type="button" class="job-roster__action">Edit</button>
+                      <button type="button" class="job-roster__action job-roster__action--danger">Remove</button>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </section>
+
+          <div class="job-manage__panels">
+            <section class="schedule" aria-label="Shift schedule">
+              <header>
+                <h3>Shifts</h3>
+                <button type="button" class="hours-toggle">Expand hours</button>
+              </header>
+              <table class="schedule__table">
+                <thead>
+                  <tr>
+                    <th scope="col">Day</th>
+                    <th scope="col">Hours</th>
+                    <th scope="col">Activity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for shift in shifts %}
+                    <tr data-hours="{{ shift.hours }}">
+                      <td data-label="Day">{{ shift.day }}</td>
+                      <td data-label="Hours">{{ shift.hours }}</td>
+                      <td data-label="Activity">{{ shift.activity }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </section>
+
+            <section class="milestones" aria-label="Career milestones">
+              <h3>Milestones</h3>
+              <div class="milestones__grid">
+                {% for milestone in milestones %}
+                  <article class="milestone" data-status="{{ milestone.status }}">
+                    <h4>{{ milestone.name }}</h4>
+                    <p>Deadline: {{ milestone.deadline }}</p>
+                    <p>Status: {{ milestone.status }}</p>
+                  </article>
+                {% endfor %}
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="job-panel"
+        id="job-settings"
+        data-job-panel="settings"
+        aria-label="Job settings"
+        hidden
+      >
+        <header class="job-panel__header">
+          <h2>Job settings</h2>
+          <p>Fine-tune automation, reminders, and scheduling defaults for your workload.</p>
+        </header>
+        <form class="job-settings" action="#" method="post">
+          <div class="job-settings__grid">
+            <div class="job-settings__group">
+              <div class="job-settings__text">
+                <h3>Automation</h3>
+                <p>Automatically add selected roles to your managed roster and balance their hours.</p>
+              </div>
+              <label class="job-toggle">
+                <input type="checkbox" name="auto_assign" {% if job_preferences.auto_assign %}checked{% endif %} />
+                <span>Auto-assign selected jobs</span>
+              </label>
+            </div>
+
+            <div class="job-settings__group">
+              <div class="job-settings__text">
+                <h3>Default shift length</h3>
+                <p>Set the number of hours the planner proposes when you create a new shift.</p>
+              </div>
+              <label class="job-settings__control">
+                <span class="job-settings__label">Hours per shift</span>
+                <input
+                  type="number"
+                  name="default_shift_length"
+                  min="1"
+                  max="12"
+                  value="{{ job_preferences.default_shift_length }}"
+                />
+              </label>
+            </div>
+
+            <div class="job-settings__group">
+              <div class="job-settings__text">
+                <h3>Weekly capacity</h3>
+                <p>Control the total time allocation across all roles so you avoid overbooking.</p>
+              </div>
+              <label class="job-settings__control">
+                <span class="job-settings__label">Maximum hours</span>
+                <input
+                  type="number"
+                  name="max_weekly_hours"
+                  min="5"
+                  max="80"
+                  value="{{ job_preferences.max_weekly_hours }}"
+                />
+              </label>
+            </div>
+
+            <div class="job-settings__group">
+              <div class="job-settings__text">
+                <h3>Notifications</h3>
+                <p>Choose how the system keeps you informed about schedule changes and new roles.</p>
+              </div>
+              <div class="job-settings__controls">
+                <label class="job-toggle">
+                  <input type="checkbox" name="notifications[email]" {% if job_preferences.notifications.email %}checked{% endif %} />
+                  <span>Email updates</span>
+                </label>
+                <label class="job-toggle">
+                  <input type="checkbox" name="notifications[sms]" {% if job_preferences.notifications.sms %}checked{% endif %} />
+                  <span>SMS alerts</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="job-settings__group">
+              <div class="job-settings__text">
+                <h3>Reminders</h3>
+                <p>Decide when the planner nudges you ahead of important milestones or shifts.</p>
+              </div>
+              <label class="job-settings__control">
+                <span class="job-settings__label">Reminder timing</span>
+                <select name="reminder_window">
+                  {% set reminder_options = ["2 hours before", "1 day before", "2 days before", "1 week before"] %}
+                  {% for option in reminder_options %}
+                    <option value="{{ option }}" {% if job_preferences.reminder_window == option %}selected{% endif %}>
+                      {{ option }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="job-settings__actions">
+            <button type="submit" class="job-settings__submit">Save preferences</button>
+            <button type="button" class="job-settings__reset">Reset to defaults</button>
+          </div>
+        </form>
+      </section>
     </div>
-  </section>
+  </div>
 {% endblock %}
