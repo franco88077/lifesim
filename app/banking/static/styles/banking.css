@@ -518,6 +518,10 @@
   display: block;
 }
 
+.insight-chart__canvas canvas[hidden] {
+  display: none !important;
+}
+
 .insight-chart__empty {
   position: absolute;
   inset: 0;
@@ -530,6 +534,10 @@
   border: 1px dashed #cbd5e1;
   border-radius: 0.85rem;
   padding: 1.25rem;
+}
+
+.insight-chart__empty[hidden] {
+  display: none !important;
 }
 
 @media (max-width: 640px) {
