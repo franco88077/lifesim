@@ -113,14 +113,17 @@
             </div>
             <div class="account-activity__balances" aria-label="Account balances">
               <h3>Account Balances</h3>
+              {% set account_label_map = {'checking': 'CHECKING', 'savings': 'SAVINGS'} %}
               <div class="account-grid">
                 {% for account in accounts %}
+                  {% set account_label = account_label_map.get(account.id, account.name) %}
+                  {% set show_account_type = account.id not in account_label_map and account.type %}
                   <article class="account-card summary-card" data-account-card data-account="{{ account.id }}">
                     <header>
-                      {% if account.type %}
+                      {% if show_account_type %}
                         <p class="account-card__type">{{ account.type }}</p>
                       {% endif %}
-                      <h2>{{ account.name }}</h2>
+                      <h2>{{ account_label }}</h2>
                     </header>
                     <p class="account-card__balance">
                       <span data-balance-value>{{ account.display_balance }}</span>

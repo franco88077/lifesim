@@ -48,22 +48,22 @@
     <section class="banking-overview">
       <header class="banking-overview__header">
         <h1>{{ bank_settings.bank_name }} — Banking Transfer</h1>
-        <p>
-          Move money through {{ bank_settings.bank_name }} while every transaction is written to the ledger and the
-          balances refresh in real time.
-        </p>
+        <p>Move money between any two accounts.</p>
       </header>
       <div class="transfer-balances" aria-label="Available funds">
         <h2>Available Funds</h2>
         <p>Check balances before you submit a transfer to keep cash, checking, and savings aligned.</p>
+        {% set account_label_map = {'checking': 'CHECKING', 'savings': 'SAVINGS'} %}
         <div class="account-grid">
           {% for account in accounts %}
+            {% set account_label = account_label_map.get(account.id, account.name) %}
+            {% set show_account_type = account.id not in account_label_map and account.type %}
             <article class="account-card summary-card" data-account-card data-account="{{ account.id }}">
               <header>
-                {% if account.type %}
+                {% if show_account_type %}
                   <p class="account-card__type">{{ account.type }}</p>
                 {% endif %}
-                <h2>{{ account.name }}</h2>
+                <h2>{{ account_label }}</h2>
               </header>
               <p class="account-card__balance">
                 <span data-balance-value>{{ account.display_balance }}</span>
@@ -76,7 +76,7 @@
         {% if can_transfer %}
           <article class="transfer-card transfer-card--wide">
             <h2>Transfer Funds</h2>
-            <p>Move money between any two accounts. The system enforces minimum balances and records the ledger entries for checking and savings.</p>
+            <p>Move money between any two accounts.</p>
             <form
               id="form-account-transfer"
               class="transfer-form"
@@ -93,7 +93,8 @@
                   >
                     <option value="" disabled selected>Select a source</option>
                     {% for account in accounts %}
-                      <option value="{{ account.id }}">{{ account.name }}</option>
+                      {% set account_label = account_label_map.get(account.id, account.name) %}
+                      <option value="{{ account.id }}">{{ account_label }}</option>
                     {% endfor %}
                   </select>
                 </label>
@@ -107,7 +108,8 @@
                   >
                     <option value="" disabled selected>Select a destination</option>
                     {% for account in accounts %}
-                      <option value="{{ account.id }}">{{ account.name }}</option>
+                      {% set account_label = account_label_map.get(account.id, account.name) %}
+                      <option value="{{ account.id }}">{{ account_label }}</option>
                     {% endfor %}
                   </select>
                 </label>
@@ -123,9 +125,6 @@
                   />
                 </label>
               </div>
-              <div class="transfer-summary" data-transfer-summary data-state="info">
-                Select a source and destination to preview the transfer narrative and guardrails.
-              </div>
               <div class="transfer-guidelines" data-transfer-guidelines data-state="idle">
                 <div class="transfer-guideline" data-guideline="source" hidden></div>
                 <div class="transfer-guideline" data-guideline="destination" hidden></div>
@@ -133,29 +132,6 @@
               <button type="submit" class="transfer-button">Submit transfer</button>
               <p class="form-feedback" data-feedback hidden></p>
             </form>
-            {% if has_checking_account or has_savings_account %}
-              <section class="transfer-requirements" aria-label="Account requirements">
-                <h3>Minimum Balance Guardrails</h3>
-                <ul>
-                  {% if has_checking_account %}
-                    <li>
-                      <strong>Checking:</strong>
-                      Keep {{ '${:,.2f}'.format(bank_settings.checking_minimum_balance) }} on hand or a
-                      {{ '${:,.2f}'.format(bank_settings.checking_minimum_fee) }} fee posts on the
-                      anchor date.
-                    </li>
-                  {% endif %}
-                  {% if has_savings_account %}
-                    <li>
-                      <strong>Savings:</strong>
-                      Hold {{ '${:,.2f}'.format(bank_settings.savings_minimum_balance) }} to avoid a
-                      {{ '${:,.2f}'.format(bank_settings.savings_minimum_fee) }} maintenance charge when
-                      interest credits.
-                    </li>
-                  {% endif %}
-                </ul>
-              </section>
-            {% endif %}
           </article>
         {% else %}
           <article class="transfer-card transfer-card--wide">

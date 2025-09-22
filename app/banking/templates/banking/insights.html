@@ -88,26 +88,6 @@
             </section>
           {% endif %}
 
-          {% if has_savings_account %}
-            <section class="insight-panel" aria-label="Savings interest outlook">
-              <header class="insight-panel__header">
-                <h2>Interest Outlook</h2>
-                <p>
-                  Understand how {{ account_insights.savings.apy_rate }} grows your savings and when the next payout is expected.
-                </p>
-              </header>
-              <div class="insight-apy summary-card">
-                <p class="insight-apy__headline">
-                  Maintain the current balance to earn <strong>{{ account_insights.savings.projected_interest }}</strong>
-                  on {{ account_insights.savings.next_anchor }}.
-                </p>
-                <p class="insight-apy__note">
-                  Interest posts on the anchor date and compounds automatically. Deposits before that day increase the payout.
-                </p>
-              </div>
-            </section>
-          {% endif %}
-
           {% if insight_due_items %}
             <section class="insight-panel" aria-label="Due date guidance">
               <header class="insight-panel__header">
@@ -126,6 +106,26 @@
                     <p class="insight-due-tip">{{ due.tip }}</p>
                   </article>
                 {% endfor %}
+              </div>
+            </section>
+          {% endif %}
+
+          {% if has_savings_account %}
+            <section class="insight-panel" aria-label="Savings interest outlook">
+              <header class="insight-panel__header">
+                <h2>Interest Outlook</h2>
+                <p>
+                  Understand how {{ account_insights.savings.apy_rate }} grows your savings and when the next payout is expected.
+                </p>
+              </header>
+              <div class="insight-apy summary-card">
+                <p class="insight-apy__headline">
+                  Maintain the current balance to earn <strong>{{ account_insights.savings.projected_interest }}</strong>
+                  on {{ account_insights.savings.next_anchor }}.
+                </p>
+                <p class="insight-apy__note">
+                  Interest posts on the anchor date and compounds automatically. Deposits before that day increase the payout.
+                </p>
               </div>
             </section>
           {% endif %}
