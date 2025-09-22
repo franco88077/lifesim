@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 from .extensions import db
+from .settings.services import convert_to_active_timezone
 
 
 class SystemLog(db.Model):
@@ -24,9 +25,10 @@ class SystemLog(db.Model):
 
     def serialize(self) -> dict[str, str]:
         """Return a JSON-serializable representation of the log entry."""
+        localized_timestamp = convert_to_active_timezone(self.timestamp)
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat(timespec="seconds"),
+            "timestamp": localized_timestamp.isoformat(timespec="seconds"),
             "component": self.component,
             "action": self.action,
             "level": self.level,

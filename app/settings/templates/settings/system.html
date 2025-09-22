@@ -1,0 +1,97 @@
+{% extends "layouts/base.html" %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('settings.static', filename='styles/settings.css') }}" />
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{{ url_for('settings.static', filename='js/settings.js') }}" defer></script>
+{% endblock %}
+
+{% block content %}
+  <div class="settings-shell">
+    <header class="settings-header" aria-labelledby="system-settings-title">
+      <div>
+        <h1 id="system-settings-title">System Preferences</h1>
+        <p>
+          Configure how Lifesim tracks time across every module. The selected timezone controls
+          banking charts, anchor dates, runtime logs, and scheduled reviews.
+        </p>
+      </div>
+      <div class="settings-current" aria-live="polite">
+        <span class="settings-current__label">Active timezone</span>
+        <span class="settings-current__value" data-active-timezone>{{ timezone_label }}</span>
+        <span class="settings-current__note">Applies instantly across modules after saving.</span>
+      </div>
+    </header>
+
+    {% if feedback %}
+      <div class="settings-feedback settings-feedback--{{ feedback.type }}" role="status">
+        {{ feedback.message }}
+      </div>
+    {% endif %}
+
+    <section class="settings-card" aria-label="Timezone configuration">
+      <form method="post" class="settings-form" data-timezone-form>
+        <header class="settings-form__header">
+          <div>
+            <h2>Timezone</h2>
+            <p>
+              Choose a timezone from the curated list. Every timestamp stored in UTC will be
+              presented using your selection.
+            </p>
+          </div>
+          <div class="settings-form__summary" data-timezone-preview hidden>
+            <span class="settings-form__summary-label">Pending selection</span>
+            <span class="settings-form__summary-value" data-timezone-preview-value></span>
+          </div>
+        </header>
+
+        <label class="settings-field">
+          <span>Default timezone</span>
+          <select name="timezone" data-timezone-select>
+            {% for option in timezone_options %}
+              <option
+                value="{{ option.value }}"
+                data-offset="{{ option.offset }}"
+                {% if settings.timezone == option.value %}selected{% endif %}
+              >
+                {{ option.display_label }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <p class="settings-note">
+          All dashboards refresh their timestamps automatically. No manual data entry is required.
+        </p>
+
+        <button type="submit" class="settings-submit">Save timezone</button>
+      </form>
+    </section>
+
+    <section class="settings-impact" aria-label="Timezone impact overview">
+      <article class="settings-impact__item">
+        <h3>Banking timelines</h3>
+        <p>
+          Account charts, anchor dates, and interest projections align with the configured timezone
+          so cash flow snapshots match your day.
+        </p>
+      </article>
+      <article class="settings-impact__item">
+        <h3>Runtime logs</h3>
+        <p>
+          Operational log entries and console updates reflect the same clock, simplifying audits and
+          troubleshooting across teams.
+        </p>
+      </article>
+      <article class="settings-impact__item">
+        <h3>Scheduling</h3>
+        <p>
+          System reminders and review cycles reuse the shared timezone, keeping due dates consistent
+          with your operating hours.
+        </p>
+      </article>
+    </section>
+  </div>
+{% endblock %}

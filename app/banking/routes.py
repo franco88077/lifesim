@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from ..extensions import db
 from ..logging_service import log_manager
+from ..settings.services import format_datetime_for_display
 from . import bp
 from .models import BankAccount, BankSettings, BankTransaction
 from .services import (
@@ -47,7 +48,7 @@ def _serialize_transaction(transaction: BankTransaction) -> dict[str, object]:
 
     account_name = transaction.account.name if transaction.account else "Unknown account"
     sign = "+" if transaction.direction == "credit" else "−"
-    timestamp = transaction.created_at.strftime("%b %d, %Y")
+    timestamp = format_datetime_for_display(transaction.created_at)
 
     return {
         "id": transaction.id,
