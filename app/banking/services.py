@@ -618,13 +618,17 @@ def _aggregate_series(
             base_date = localized.date()
         else:
             base_date = point_date
-        if period == "monthly":
-            key = date(base_date.year, base_date.month, 1)
-        elif period == "yearly":
+
+        if period == "yearly":
             key = date(base_date.year, 1, 1)
-        else:
+        elif period == "monthly":
+            key = date(base_date.year, base_date.month, 1)
+        elif period == "daily":
             key = base_date
-        aggregated[key] = value
+        else:  # pragma: no cover - defensive guard for unsupported cadences
+            raise ValueError(f"Unsupported aggregation period: {period}")
+
+        aggregated[key] = quantize_amount(value)
 
     return sorted(aggregated.items())
 
@@ -651,7 +655,7 @@ def _build_period_series(
     """Return daily, monthly, and yearly aggregations for the series."""
 
     return {
-        "daily": _serialize_series(series),
+        "daily": _serialize_series(_aggregate_series(series, "daily")),
         "monthly": _serialize_series(_aggregate_series(series, "monthly")),
         "yearly": _serialize_series(_aggregate_series(series, "yearly")),
     }
@@ -719,8 +723,10 @@ def _build_interest_series(
         year_key = date(base_date.year, 1, 1)
         yearly_points[year_key] = quantize_amount(balance_value * yearly_rate)
 
+    aggregated_daily = _aggregate_series(daily_points, "daily")
+
     return {
-        "daily": daily_points,
+        "daily": aggregated_daily,
         "monthly": sorted(monthly_points.items()),
         "yearly": sorted(yearly_points.items()),
     }
